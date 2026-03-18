@@ -10,12 +10,12 @@ import {
 } from "react-native";
 
 const lessonCards = [
-  ["Small talk at work", "Unit 04 • 12 min", "Continue"],
-  ["Ordering coffee politely", "Unit 05 • 8 min", "Completed"],
-  ["Hotel check-in essentials", "Unit 06 • 10 min", "Locked"],
+  ["職場閒聊", "單元 04 - 12 分鐘", "繼續學習"],
+  ["禮貌點咖啡", "單元 05 - 8 分鐘", "已完成"],
+  ["飯店入住會話", "單元 06 - 10 分鐘", "尚未解鎖"],
 ];
 
-const topicPills = ["Travel", "Work", "Dating", "Daily Life", "Study", "Interviews"];
+const topicPills = ["旅遊", "工作", "約會", "日常生活", "學校", "面試"];
 
 export function renderPage(activePage) {
   return <PageRouter activePage={activePage} />;
@@ -28,19 +28,31 @@ function PageRouter({ activePage }) {
     case "welcome":
       return (
         <Screen>
-          <HeroCard eyebrow="AI SPEAKING COACH" title="Build daily confidence through guided conversation practice." description="Landing and onboarding screen for course structure, learning goals, and trial conversion." />
+          <HeroCard
+            eyebrow="AI 英文口說教練"
+            title="用循序引導的口說練習，逐步建立每天開口說英文的信心。"
+            description="歡迎與新手導覽頁，介紹課程架構、學習目標與試用轉換。"
+          />
           <Grid>
-            <InfoTile title="Guided Courses" value="120+" caption="Structured lessons for beginner to intermediate learners." />
-            <InfoTile title="Live Feedback" value="Instant" caption="Pronunciation and grammar hints during practice." />
+            <InfoTile
+              title="引導式課程"
+              value="120+"
+              caption="從初學到中階的系統化英文口說練習。"
+            />
+            <InfoTile
+              title="即時回饋"
+              value="立即"
+              caption="練習時同步提供發音與文法提示。"
+            />
           </Grid>
           <Panel>
-            <SectionTitle title="Onboarding Steps" subtitle="First-time user journey" />
-            <StepRow number="01" title="Choose your goal" copy="Travel, work, school, or confidence building." />
-            <StepRow number="02" title="Take a quick level check" copy="Set a starting point before entering the course path." />
-            <StepRow number="03" title="Start your first speaking mission" copy="A short conversation with coaching and replay." />
+            <SectionTitle title="新手開始流程" subtitle="第一次使用時的導覽步驟" />
+            <StepRow number="01" title="選擇你的目標" copy="旅遊、工作、學校，或單純想更敢開口說英文。" />
+            <StepRow number="02" title="完成快速程度測驗" copy="先判斷起始程度，再安排適合的課程路徑。" />
+            <StepRow number="03" title="開始第一個口說任務" copy="用短對話熟悉練習方式、回饋與重播功能。" />
             <Row>
-              <PrimaryButton label="Start Free Trial" />
-              <GhostButton label="Watch Preview" />
+              <PrimaryButton label="開始免費試用" />
+              <GhostButton label="先看功能預覽" />
             </Row>
           </Panel>
         </Screen>
@@ -48,57 +60,79 @@ function PageRouter({ activePage }) {
     case "login":
       return (
         <Screen>
-          <HeroCard eyebrow="ACCOUNT ACCESS" title="Sign back in and continue your speaking streak." description="Existing-user login page with email and password fields, social entry, and recovery links." />
-          <AuthCard title="Sign in" helper="Pick up where you left off.">
-            <Field label="Email" placeholder="you@example.com" />
-            <Field label="Password" placeholder="Enter your password" secure />
-            <SplitText left="Remember this device" right="Forgot password?" />
-            <PrimaryButton label="Sign in" />
-            <GhostButton label="Continue with Google" />
+          <HeroCard
+            eyebrow="帳號登入"
+            title="登入後繼續你的口說連續學習紀錄。"
+            description="提供既有使用者登入、社群登入與忘記密碼入口。"
+          />
+          <AuthCard title="登入帳號" helper="回到你上次練習的位置。">
+            <Field label="電子郵件" placeholder="請輸入電子郵件" />
+            <Field label="密碼" placeholder="請輸入密碼" secure />
+            <SplitText left="記住這台裝置" right="忘記密碼？" />
+            <PrimaryButton label="登入" />
+            <GhostButton label="使用 Google 繼續" />
           </AuthCard>
         </Screen>
       );
     case "signup":
       return (
         <Screen>
-          <HeroCard eyebrow="CREATE ACCOUNT" title="Set up your profile and unlock a 7-day trial." description="Sign-up screen for new users, including basic profile fields and goal selection." />
-          <AuthCard title="Create account" helper="Your AI coach will adapt to your learning goal.">
-            <Field label="Full name" placeholder="How should we call you?" />
-            <Field label="Email" placeholder="you@example.com" />
-            <Field label="Password" placeholder="Create a password" secure />
-            <ChipRow values={["Travel English", "Business English", "Daily Speaking"]} />
-            <PrimaryButton label="Create account" />
+          <HeroCard
+            eyebrow="建立帳號"
+            title="建立個人資料並開啟 7 天免費試用。"
+            description="新用戶註冊頁，包含基本資料與學習目標設定。"
+          />
+          <AuthCard title="建立帳號" helper="系統會依照你的目標調整學習內容。">
+            <Field label="姓名" placeholder="我們該怎麼稱呼你？" />
+            <Field label="電子郵件" placeholder="請輸入電子郵件" />
+            <Field label="密碼" placeholder="請建立密碼" secure />
+            <ChipRow values={["旅遊英文", "商務英文", "生活口說"]} />
+            <PrimaryButton label="建立帳號" />
           </AuthCard>
         </Screen>
       );
     case "placement":
       return (
         <Screen>
-          <HeroCard eyebrow="LEVEL CHECK" title="Find the right starting point in under 3 minutes." description="Placement screen for goal selection, self-rating, and a short spoken assessment." />
+          <HeroCard
+            eyebrow="程度測驗"
+            title="3 分鐘內找到最適合你的起點。"
+            description="測驗頁包含目標選擇、自評與簡短口說評估。"
+          />
           <Panel>
-            <SectionTitle title="Assessment Flow" subtitle="Static mockup only" />
-            <QuestionCard prompt="How comfortable are you with everyday English conversation?" answers={["I need basic support", "I can handle simple topics", "I speak with occasional mistakes"]} />
-            <QuestionCard prompt="Which topic matters most right now?" answers={["Travel", "Work meetings", "Presentations", "Interview prep"]} />
-            <PrimaryButton label="See my recommended level" />
+            <SectionTitle title="測驗流程" subtitle="此處為靜態示意畫面" />
+            <QuestionCard
+              prompt="你對日常英文對話的熟悉程度如何？"
+              answers={["我需要從基礎開始", "簡單主題可以應付", "我能說，但還會犯一些錯"]}
+            />
+            <QuestionCard
+              prompt="你現在最想加強哪一種情境？"
+              answers={["旅遊", "工作會議", "英文簡報", "面試準備"]}
+            />
+            <PrimaryButton label="查看建議程度" />
           </Panel>
         </Screen>
       );
     case "home":
       return (
         <Screen>
-          <HeroCard eyebrow="HOME DASHBOARD" title="Your next lesson, your current streak, and fresh conversation topics." description="Main dashboard showing progress, recommendations, and shortcuts into the speaking flow." />
+          <HeroCard
+            eyebrow="首頁儀表板"
+            title="快速看到下一課、連續學習天數與推薦主題。"
+            description="主首頁整合學習進度、推薦內容與口說入口。"
+          />
           <Grid>
-            <InfoTile title="Current Streak" value="12 days" caption="Keep it alive with one speaking mission today." />
-            <InfoTile title="Weekly Goal" value="4 / 5" caption="One more session to finish this week." />
+            <InfoTile title="連續學習" value="12 天" caption="今天再完成一次口說任務就能延續紀錄。" />
+            <InfoTile title="本週目標" value="4 / 5" caption="再完成 1 次練習就能達成本週目標。" />
           </Grid>
           <Panel>
-            <SectionTitle title="Continue Learning" subtitle="Recommended next units" />
+            <SectionTitle title="繼續學習" subtitle="系統推薦你下一個單元" />
             {lessonCards.map(([title, meta, status]) => (
               <CourseCard key={title} title={title} meta={meta} status={status} />
             ))}
           </Panel>
           <Panel>
-            <SectionTitle title="Topic Shortcuts" subtitle="Jump into a quick conversation" />
+            <SectionTitle title="主題捷徑" subtitle="快速開始一段短口說練習" />
             <ChipRow values={topicPills} />
           </Panel>
         </Screen>
@@ -106,147 +140,203 @@ function PageRouter({ activePage }) {
     case "path":
       return (
         <Screen>
-          <HeroCard eyebrow="COURSE MAP" title="A structured path from foundations to fluent speaking patterns." description="Learning path page that visualizes levels, units, lesson states, and locked progression." />
+          <HeroCard
+            eyebrow="學習地圖"
+            title="從基礎到流暢口說，按部就班往前走。"
+            description="學習路徑頁呈現程度、單元狀態與解鎖順序。"
+          />
           <Panel>
-            <SectionTitle title="Level 1: Foundations" subtitle="Grammar + speaking basics" />
-            <TimelineItem title="Greetings and introductions" meta="Completed" tone="done" />
-            <TimelineItem title="Talking about your routine" meta="In progress" tone="active" />
-            <TimelineItem title="Making plans with friends" meta="Next up" tone="next" />
+            <SectionTitle title="Level 1：基礎建立" subtitle="文法觀念與口說基本功" />
+            <TimelineItem title="打招呼與自我介紹" meta="已完成" tone="done" />
+            <TimelineItem title="描述你的日常生活" meta="學習中" tone="active" />
+            <TimelineItem title="和朋友約時間" meta="下一課" tone="next" />
           </Panel>
           <Panel>
-            <SectionTitle title="Level 2: Real-life Scenarios" subtitle="Unlocked after Level 1" />
-            <TimelineItem title="Workplace small talk" meta="Locked" tone="locked" />
-            <TimelineItem title="Restaurant conversations" meta="Locked" tone="locked" />
+            <SectionTitle title="Level 2：生活情境" subtitle="完成 Level 1 後解鎖" />
+            <TimelineItem title="職場小聊" meta="尚未解鎖" tone="locked" />
+            <TimelineItem title="餐廳對話" meta="尚未解鎖" tone="locked" />
           </Panel>
         </Screen>
       );
     case "lesson":
       return (
         <Screen>
-          <HeroCard eyebrow="LESSON DETAIL" title="Blend teaching video, key phrases, and a speaking mission in one lesson page." description="Lesson detail layout with a featured video, key expressions, and a step-by-step progression." />
+          <HeroCard
+            eyebrow="課程詳情"
+            title="把教學影片、關鍵句型與口說任務整合在同一頁。"
+            description="課程詳情頁展示影片、重點句與逐步任務。"
+          />
           <Panel>
-            <VideoCard title="Video Lesson: Asking for directions politely" time="06:42" />
-            <SectionTitle title="Today's phrases" subtitle="Pinned expressions for the lesson" />
-            <PhraseRow phrase="Could you tell me how to get to the station?" meaning="Polite way to ask for directions." />
-            <PhraseRow phrase="Is it within walking distance?" meaning="Useful follow-up question." />
-            <PrimaryButton label="Start speaking mission" />
+            <VideoCard title="影片課程：禮貌地問路" time="06:42" />
+            <SectionTitle title="今日重點句" subtitle="先看懂，再進入口說任務" />
+            <PhraseRow phrase="Could you tell me how to get to the station?" meaning="中文意思：請問去車站怎麼走？" />
+            <PhraseRow phrase="Is it within walking distance?" meaning="中文意思：走路可以到嗎？" />
+            <PrimaryButton label="開始口說任務" />
           </Panel>
         </Screen>
       );
     case "practice":
       return (
         <Screen>
-          <HeroCard eyebrow="SPEAKING DRILL" title="A guided role-play screen with transcript, hints, and live corrections." description="Core speaking practice page for scenario-based training." />
+          <HeroCard
+            eyebrow="口說練習"
+            title="用角色扮演方式練習，並取得逐句回饋。"
+            description="核心練習頁包含情境、對話、提示與即時修正。"
+          />
           <Panel>
-            <SectionTitle title="Scenario" subtitle="Coffee shop ordering practice" />
-            <Bubble speaker="AI Barista" tone="ai" text="Hi there. What can I get started for you today?" />
-            <Bubble speaker="You" tone="user" text="Can I get a latte and one sandwich, please?" />
-            <FeedbackCard title="Instant feedback" points={["Pronunciation: latte was clear", "Grammar: sentence structure is correct", "Suggestion: add size for a more natural reply"]} />
-            <ToggleRow label="Hints enabled" value={hintEnabled} onValueChange={setHintEnabled} />
-            <PrimaryButton label="Tap to speak" />
+            <SectionTitle title="練習情境" subtitle="在咖啡店點餐" />
+            <Bubble speaker="AI 店員" tone="ai" text="Hi there. What can I get started for you today?" />
+            <Bubble speaker="你" tone="user" text="Can I get a latte and one sandwich, please?" />
+            <FeedbackCard
+              title="即時回饋"
+              points={[
+                "發音：latte 這個字的發音很清楚",
+                "文法：整句結構正確",
+                "建議：可以補上尺寸，聽起來會更自然",
+              ]}
+            />
+            <ToggleRow label="開啟提示" value={hintEnabled} onValueChange={setHintEnabled} />
+            <PrimaryButton label="點一下開始說" />
           </Panel>
         </Screen>
       );
     case "freetalk":
       return (
         <Screen>
-          <HeroCard eyebrow="FREE TALK" title="Open-ended AI conversation with topic presets and session controls." description="A looser talk mode for extended speaking practice outside structured lessons." />
+          <HeroCard
+            eyebrow="自由對話"
+            title="不照課本也能和 AI 自由練習英文對話。"
+            description="自由對話模式支援主題選擇、語速與口音設定。"
+          />
           <Panel>
-            <SectionTitle title="Choose a topic" subtitle="Fast entry points into free conversation" />
-            <ChipRow values={["My weekend", "Job interview", "Airport check-in", "First date", "Daily routine"]} />
+            <SectionTitle title="選擇主題" subtitle="快速進入你想練的情境" />
+            <ChipRow values={["我的週末", "求職面試", "機場報到", "第一次約會", "日常作息"]} />
             <Grid>
-              <InfoTile title="Accent" value="US / UK" caption="Static selector card" />
-              <InfoTile title="Speed" value="0.8x / 1x" caption="Static selector card" />
+              <InfoTile title="口音" value="美式 / 英式" caption="靜態切換示意" />
+              <InfoTile title="語速" value="0.8x / 1x" caption="靜態切換示意" />
             </Grid>
-            <Bubble speaker="AI Coach" tone="ai" text="Tell me about a recent trip you enjoyed. I will keep asking follow-up questions." />
-            <PrimaryButton label="Start free talk" />
+            <Bubble
+              speaker="AI 教練"
+              tone="ai"
+              text="Tell me about a recent trip you enjoyed. I will keep asking follow-up questions."
+            />
+            <PrimaryButton label="開始自由對話" />
           </Panel>
         </Screen>
       );
     case "summary":
       return (
         <Screen>
-          <HeroCard eyebrow="SESSION SUMMARY" title="Wrap each speaking session with scores, corrections, and next actions." description="End-of-session page summarizing the speaking result." />
+          <HeroCard
+            eyebrow="課後總結"
+            title="每次口說結束後，用分數與重點整理幫你複盤。"
+            description="課後總結頁用來整理表現、修正與下一步建議。"
+          />
           <Grid>
-            <ScoreTile label="Pronunciation" score="84" />
-            <ScoreTile label="Grammar" score="78" />
-            <ScoreTile label="Fluency" score="81" />
-            <ScoreTile label="Confidence" score="88" />
+            <ScoreTile label="發音" score="84" />
+            <ScoreTile label="文法" score="78" />
+            <ScoreTile label="流暢度" score="81" />
+            <ScoreTile label="自信度" score="88" />
           </Grid>
           <Panel>
-            <SectionTitle title="Key takeaways" subtitle="Review before moving on" />
-            <PhraseRow phrase="I want a coffee" meaning="Try: I'd like a coffee, please." />
-            <PhraseRow phrase="How much time it takes?" meaning="Try: How long does it take?" />
-            <PrimaryButton label="Review mistakes" />
+            <SectionTitle title="本次重點" subtitle="下一次開口前先快速複習" />
+            <PhraseRow phrase="I want a coffee" meaning="建議改成：I'd like a coffee, please." />
+            <PhraseRow phrase="How much time it takes?" meaning="建議改成：How long does it take?" />
+            <PrimaryButton label="查看錯誤整理" />
           </Panel>
         </Screen>
       );
     case "review":
       return (
         <Screen>
-          <HeroCard eyebrow="REVIEW CENTER" title="Browse conversation history, saved phrases, and mistakes to revisit." description="A review archive screen driven by course history and speaking errors." />
+          <HeroCard
+            eyebrow="複習中心"
+            title="集中查看歷史對話、常犯錯誤與收藏句子。"
+            description="複習頁依照學習紀錄與錯誤類型整理內容。"
+          />
           <Panel>
-            <SectionTitle title="Recent sessions" subtitle="Conversation history" />
-            <HistoryRow title="Ordering at a cafe" meta="Today • 8 min • 4 corrections" />
-            <HistoryRow title="Talking about your hobbies" meta="Yesterday • 11 min • 7 corrections" />
-            <HistoryRow title="Hotel check-in practice" meta="Mar 16 • 10 min • 5 corrections" />
+            <SectionTitle title="近期練習紀錄" subtitle="回顧最近完成的口說任務" />
+            <HistoryRow title="在咖啡店點餐" meta="今天 - 8 分鐘 - 4 次修正" />
+            <HistoryRow title="聊聊你的興趣" meta="昨天 - 11 分鐘 - 7 次修正" />
+            <HistoryRow title="飯店入住練習" meta="3 月 16 日 - 10 分鐘 - 5 次修正" />
           </Panel>
           <Panel>
-            <SectionTitle title="Saved phrases" subtitle="For spaced review later" />
-            <PhraseRow phrase="Could I have a window seat?" meaning="Useful phrase for travel role-play." />
-            <PhraseRow phrase="I'm looking for a quiet place to work." meaning="Useful phrase for cafes and coworking spaces." />
+            <SectionTitle title="已收藏句子" subtitle="之後可再次複習與跟讀" />
+            <PhraseRow phrase="Could I have a window seat?" meaning="中文意思：我可以要靠窗的座位嗎？" />
+            <PhraseRow phrase="I'm looking for a quiet place to work." meaning="中文意思：我想找個可以安靜工作的地方。" />
           </Panel>
         </Screen>
       );
     case "subscription":
       return (
         <Screen>
-          <HeroCard eyebrow="PLANS" title="Present trial messaging, plan comparison, and upgrade entry points." description="Subscription page for Basic, Premium, and Plus style offerings." />
-          <PlanCard name="Basic" price="$0" features={["Limited daily practice", "Starter lessons", "Preview feedback"]} />
-          <PlanCard name="Premium" price="$14.99" features={["Unlimited speaking drills", "Structured course path", "Detailed corrections"]} highlight />
-          <PlanCard name="Plus" price="$24.99" features={["Expanded free talk", "Advanced feedback depth", "Priority support"]} />
+          <HeroCard
+            eyebrow="訂閱方案"
+            title="清楚比較試用、方案差異與升級價值。"
+            description="訂閱頁展示免費版、進階版與高階版的功能。"
+          />
+          <PlanCard name="基本版" price="$0" features={["每日練習次數有限", "可使用入門課程", "回饋內容為精簡版"]} />
+          <PlanCard
+            name="進階版"
+            price="$14.99"
+            features={["不限次數口說練習", "完整學習路徑", "更詳細的錯誤修正"]}
+            highlight
+          />
+          <PlanCard
+            name="高階版"
+            price="$24.99"
+            features={["更多自由對話場景", "更深入的回饋分析", "優先客服支援"]}
+          />
           <Panel>
-            <SectionTitle title="Trial details" subtitle="Static purchase information" />
-            <Text style={styles.paragraph}>7-day free trial, then monthly billing. Cancel anytime from the app store settings page.</Text>
-            <PrimaryButton label="Start 7-day trial" />
+            <SectionTitle title="試用資訊" subtitle="購買前的重要說明" />
+            <Text style={styles.paragraph}>提供 7 天免費試用，之後改為按月扣款，可隨時在商店訂閱設定中取消。</Text>
+            <PrimaryButton label="開始 7 天免費試用" />
           </Panel>
         </Screen>
       );
     case "profile":
       return (
         <Screen>
-          <HeroCard eyebrow="PROFILE & SETTINGS" title="House account details, app preferences, and speaking options." description="Profile screen for user settings and subscription visibility." />
+          <HeroCard
+            eyebrow="個人設定"
+            title="管理帳號資料、學習偏好與口說設定。"
+            description="個人設定頁用來調整學習目標、口音與通知。"
+          />
           <Panel>
-            <SettingRow label="Display name" value="Dark Schneider" />
-            <SettingRow label="Learning goal" value="Daily speaking confidence" />
-            <SettingRow label="Accent preference" value="American English" />
-            <SettingRow label="Speech speed" value="Normal" />
-            <SettingRow label="Current plan" value="Premium Trial" />
+            <SettingRow label="顯示名稱" value="Dark Schneider" />
+            <SettingRow label="學習目標" value="建立日常英文口說自信" />
+            <SettingRow label="偏好口音" value="美式英文" />
+            <SettingRow label="語速" value="一般" />
+            <SettingRow label="目前方案" value="進階版試用中" />
           </Panel>
           <Panel>
-            <SectionTitle title="Notifications" subtitle="Static toggles" />
-            <ToggleRow label="Daily reminder" value />
-            <ToggleRow label="Weekly progress report" value />
-            <ToggleRow label="Promo messages" value={false} />
+            <SectionTitle title="通知設定" subtitle="靜態切換示意" />
+            <ToggleRow label="每日提醒" value />
+            <ToggleRow label="每週進度報告" value />
+            <ToggleRow label="優惠訊息" value={false} />
           </Panel>
         </Screen>
       );
     case "support":
       return (
         <Screen>
-          <HeroCard eyebrow="HELP CENTER" title="Support, FAQs, and issue-report entry points." description="Support screen for user help, billing issues, and customer contact." />
+          <HeroCard
+            eyebrow="客服支援"
+            title="遇到問題時，快速找到常見解答與聯絡入口。"
+            description="支援頁包含常見問題、帳務說明與問題回報。"
+          />
           <Panel>
-            <SectionTitle title="Common questions" subtitle="Top support topics" />
-            <FaqRow question="How does the free trial work?" />
-            <FaqRow question="Where can I cancel my subscription?" />
-            <FaqRow question="Why is speech recognition not catching my answer?" />
-            <FaqRow question="Can I change my speaking level later?" />
+            <SectionTitle title="常見問題" subtitle="最常被問到的幾個主題" />
+            <FaqRow question="免費試用是怎麼計算的？" />
+            <FaqRow question="我要在哪裡取消訂閱？" />
+            <FaqRow question="為什麼語音辨識沒有抓到我的回答？" />
+            <FaqRow question="之後可以重新調整英文程度嗎？" />
           </Panel>
           <Panel>
-            <SectionTitle title="Contact support" subtitle="Static form layout" />
-            <Field label="Subject" placeholder="Billing issue, login issue, bug report..." />
-            <Field label="Message" placeholder="Describe your issue" multiline />
-            <PrimaryButton label="Send request" />
+            <SectionTitle title="聯絡客服" subtitle="靜態表單示意" />
+            <Field label="問題主旨" placeholder="例如：帳單問題、登入問題、錯誤回報" />
+            <Field label="問題描述" placeholder="請描述你遇到的情況" multiline />
+            <PrimaryButton label="送出問題" />
           </Panel>
         </Screen>
       );
@@ -416,7 +506,7 @@ function VideoCard({ title, time }) {
   return (
     <LinearGradient colors={["#f2d2aa", "#d49d65"]} style={styles.videoCard}>
       <View style={styles.playButton}>
-        <Text style={styles.playButtonText}>▶</Text>
+        <Text style={styles.playButtonText}>播放</Text>
       </View>
       <View>
         <Text style={styles.videoTitle}>{title}</Text>
@@ -450,7 +540,7 @@ function FeedbackCard({ title, points }) {
       <Text style={styles.feedbackTitle}>{title}</Text>
       {points.map((point) => (
         <Text key={point} style={styles.feedbackPoint}>
-          • {point}
+          - {point}
         </Text>
       ))}
     </View>
@@ -486,7 +576,7 @@ function HistoryRow({ title, meta }) {
         <Text style={styles.historyTitle}>{title}</Text>
         <Text style={styles.historyMeta}>{meta}</Text>
       </View>
-      <Text style={styles.linkText}>Open</Text>
+      <Text style={styles.linkText}>查看</Text>
     </View>
   );
 }
@@ -498,7 +588,7 @@ function PlanCard({ name, price, features, highlight }) {
       <Text style={[styles.planPrice, highlight && styles.planPriceHighlight]}>{price}</Text>
       {features.map((feature) => (
         <Text key={feature} style={[styles.planFeature, highlight && styles.planFeatureHighlight]}>
-          • {feature}
+          - {feature}
         </Text>
       ))}
     </View>
@@ -518,7 +608,7 @@ function FaqRow({ question }) {
   return (
     <View style={styles.faqRow}>
       <Text style={styles.faqText}>{question}</Text>
-      <Text style={styles.faqArrow}>›</Text>
+      <Text style={styles.faqArrow}>?</Text>
     </View>
   );
 }
@@ -530,7 +620,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 10 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   heroCard: { borderRadius: 28, overflow: "hidden", padding: 24 },
-  heroEyebrow: { color: "#b7d8ea", fontSize: 12, fontWeight: "800", letterSpacing: 2, marginBottom: 10 },
+  heroEyebrow: { color: "#b7d8ea", fontSize: 12, fontWeight: "800", letterSpacing: 1.2, marginBottom: 10 },
   heroTitle: { color: "#f8fbfd", fontSize: 34, fontWeight: "800", letterSpacing: -1.1, lineHeight: 38, marginBottom: 12 },
   heroDescription: { color: "#d7e7ee", fontSize: 15, lineHeight: 23, maxWidth: 420 },
   panel: {
@@ -578,7 +668,7 @@ const styles = StyleSheet.create({
     minWidth: 150,
     padding: 16,
   },
-  infoTitle: { color: "#5d6a67", fontSize: 12, fontWeight: "700", marginBottom: 10, textTransform: "uppercase" },
+  infoTitle: { color: "#5d6a67", fontSize: 12, fontWeight: "700", marginBottom: 10 },
   infoValue: { color: "#1f1d1a", fontSize: 24, fontWeight: "800", marginBottom: 8 },
   infoCaption: { color: "#71695f", fontSize: 13, lineHeight: 19 },
   scoreTile: {
@@ -629,7 +719,7 @@ const styles = StyleSheet.create({
   timelineMeta: { color: "#776e62", fontSize: 13, marginTop: 4 },
   videoCard: { alignItems: "center", borderRadius: 22, flexDirection: "row", gap: 16, padding: 18 },
   playButton: { alignItems: "center", backgroundColor: "rgba(255,255,255,0.85)", borderRadius: 999, height: 52, justifyContent: "center", width: 52 },
-  playButtonText: { color: "#9b5d25", fontSize: 18, fontWeight: "800", marginLeft: 2 },
+  playButtonText: { color: "#9b5d25", fontSize: 15, fontWeight: "800" },
   videoTitle: { color: "#37261a", fontSize: 17, fontWeight: "800", marginBottom: 4 },
   videoTime: { color: "#5d4836", fontSize: 13, fontWeight: "700" },
   phraseRow: { backgroundColor: "#fffdf8", borderColor: "rgba(61, 52, 38, 0.08)", borderRadius: 18, borderWidth: 1, padding: 14 },
@@ -638,7 +728,7 @@ const styles = StyleSheet.create({
   bubble: { borderRadius: 22, padding: 16 },
   bubbleAi: { backgroundColor: "#edf4f6" },
   bubbleUser: { backgroundColor: "#fff4e7" },
-  bubbleSpeaker: { color: "#5d6a67", fontSize: 12, fontWeight: "800", marginBottom: 6, textTransform: "uppercase" },
+  bubbleSpeaker: { color: "#5d6a67", fontSize: 12, fontWeight: "800", marginBottom: 6 },
   bubbleText: { color: "#1f1d1a", fontSize: 15, lineHeight: 22 },
   feedbackCard: { backgroundColor: "#f7fbff", borderColor: "rgba(31, 94, 255, 0.12)", borderRadius: 18, borderWidth: 1, padding: 16 },
   feedbackTitle: { color: "#1f5eff", fontSize: 15, fontWeight: "800", marginBottom: 8 },
