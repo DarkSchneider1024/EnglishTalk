@@ -1,0 +1,16 @@
+export const pages = [
+  { id: "welcome", label: "Welcome" },
+  { id: "login", label: "Login" },
+  { id: "signup", label: "Sign Up" },
+  { id: "placement", label: "Placement" },
+  { id: "home", label: "Home" },
+  { id: "path", label: "Learning Path" },
+  { id: "lesson", label: "Lesson" },
+  { id: "practice", label: "Speaking Drill" },
+  { id: "freetalk", label: "Free Talk" },
+  { id: "summary", label: "Session Summary" },
+  { id: "review", label: "Review" },
+  { id: "subscription", label: "Subscription" },
+  { id: "profile", label: "Profile" },
+  { id: "support", label: "Support" },
+];
