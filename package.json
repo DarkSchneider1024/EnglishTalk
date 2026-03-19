@@ -11,11 +11,13 @@
   },
   "dependencies": {
     "expo": "^55.0.7",
+    "expo-build-properties": "^55.0.10",
     "expo-linear-gradient": "~55.0.9",
     "expo-status-bar": "~55.0.4",
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-native": "0.83.2",
+    "react-native-google-mobile-ads": "^16.3.0",
     "react-native-web": "^0.21.0"
   },
   "devDependencies": {
