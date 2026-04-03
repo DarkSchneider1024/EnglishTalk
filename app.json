@@ -11,6 +11,9 @@
     },
     "assetBundlePatterns": [
       "**/*"
-    ]
+    ],
+    "experiments": {
+      "baseUrl": "/EnglishTalk"
+    }
   }
 }
