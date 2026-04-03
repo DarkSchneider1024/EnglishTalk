@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from "firebase/firestore/lite";
-import { getDb, getFirebaseConfigSummary, hasFirebaseConfig } from "./firebase";
+import { getAuth } from "firebase/auth";
+import { getDb, getFirebaseApp, getFirebaseConfigSummary, hasFirebaseConfig } from "./firebase";
 
 const DEVICE_ID_KEY = "englishtalk.deviceId";
 const PROFILE_KEY = "englishtalk.profile";
@@ -12,6 +13,11 @@ function createId(prefix) {
 }
 
 export async function getLearnerId() {
+  const app = getFirebaseApp();
+  if (app) {
+    const auth = getAuth(app);
+    if (auth.currentUser) return auth.currentUser.uid;
+  }
   const existing = await AsyncStorage.getItem(DEVICE_ID_KEY);
   if (existing) return existing;
   const next = createId("learner");

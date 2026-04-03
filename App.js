@@ -6,6 +6,8 @@ import * as Speech from "expo-speech";
 import { AdMobBannerCard, getAdMobDebugInfo, initializeMobileAds, showRewardedCreditAd } from "./src/ads/admob";
 import { createI18n, detectLocale } from "./src/i18n";
 import { getLearnerId, getMemoryMode, getMemoryStatusLabel, loadMemories, loadProfile, saveMemory, saveProfile, loadCards, saveCard } from "./src/memory";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { getFirebaseApp } from "./src/firebase";
 
 const ENV_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 
@@ -23,6 +25,9 @@ export default function App() {
   const [vocabList, setVocabList] = useState([]);
   const [cards, setCards] = useState([]);
   const [isListening, setIsListening] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [authUser, setAuthUser] = useState(null);
   const [freeCredits, setFreeCredits] = useState(3);
   const [streak, setStreak] = useState(1);
   const [weeklyGoal, setWeeklyGoal] = useState(0);
@@ -43,7 +48,7 @@ export default function App() {
     ["practice", t("nav.practice")],
     ["freeTalk", t("nav.freeTalk")],
     ["review", t("nav.review")],
-    ["cards", "單字卡"],
+    ["cards", t("nav.cards")],
     ["plans", t("nav.plans")],
     ["settings", t("nav.settings")],
   ];
@@ -222,7 +227,7 @@ export default function App() {
 
   function toggleListening() {
     if (typeof window === "undefined" || (!window.SpeechRecognition && !window.webkitSpeechRecognition)) {
-      setError("語音輸入目前僅支援網頁版。");
+      setError(t("practice.micErrorWeb"));
       return;
     }
     
@@ -241,9 +246,9 @@ export default function App() {
     };
     recognition.onerror = (e) => {
       if (e.error === "no-speech") {
-        setError("沒接收到聲音 (no-speech)，麥克風已自動關閉。請確認麥克風有收音並再試一次！");
+        setError(t("practice.micErrorNoSpeech"));
       } else {
-        setError("語音辨識發生錯誤：" + e.error);
+        setError(t("practice.micError", { error: e.error }));
       }
       setIsListening(false);
     };
@@ -256,7 +261,7 @@ export default function App() {
     try {
       const nextCards = await saveCard({ word, zh, context: topic });
       setCards(nextCards);
-      setMemoryNotice(`已將 "${word}" 存入單字卡！`);
+      setMemoryNotice(t("practice.savedCard", { word }));
     } catch(e) {
       setError(e.message);
     }
@@ -270,6 +275,31 @@ export default function App() {
     } catch (e) {
       setError(e.message);
     }
+  }
+
+  async function handleLogin() {
+    try {
+      const app = getFirebaseApp();
+      if (!app) return alert("Firebase 未設定");
+      await signInWithEmailAndPassword(getAuth(app), email, password);
+      alert("登入成功！");
+    } catch(e) { alert("登入失敗：" + e.message); }
+  }
+
+  async function handleRegister() {
+    try {
+      const app = getFirebaseApp();
+      if (!app) return alert("Firebase 未設定");
+      await createUserWithEmailAndPassword(getAuth(app), email, password);
+      alert("註冊成功！");
+    } catch(e) { alert("註冊失敗：" + e.message); }
+  }
+
+  async function handleLogout() {
+    const app = getFirebaseApp();
+    if(app) await signOut(getAuth(app));
+    setEmail("");
+    setPassword("");
   }
 
   function renderWelcome() {
@@ -336,7 +366,7 @@ export default function App() {
           <Input label={screen === "practice" ? t("practice.yourReply") : t("freeTalk.input")} value={message} onChangeText={setMessage} placeholder="Type English here..." multiline />
           <Row>
             <View style={{ flex: 2 }}><Button label={loading ? t(screen === "practice" ? "practice.sending" : "freeTalk.sending") : t(screen === "practice" ? "practice.send" : "freeTalk.send")} onPress={askGemini} /></View>
-            <View style={{ flex: 1 }}><GhostButton label={isListening ? "🔴 聆聽中" : "🎤 語音說話"} onPress={toggleListening} /></View>
+            <View style={{ flex: 1 }}><GhostButton label={isListening ? "🔴 " + t("practice.listening") : "🎤 " + t("practice.voiceSpeak")} onPress={toggleListening} /></View>
           </Row>
           {reply ? (
             <View style={styles.replyBox}>
@@ -351,7 +381,7 @@ export default function App() {
           ) : null}
           {vocabList && vocabList.length > 0 ? (
             <View style={styles.replyBox}>
-              <Text style={styles.replyLabel}>💡 自動擷取單字與片語</Text>
+              <Text style={styles.replyLabel}>💡 {t("practice.vocabHeader")}</Text>
               {vocabList.map((v) => (
                 <Row key={v.word || Math.random().toString()}>
                   <View style={styles.flex}>
@@ -359,7 +389,7 @@ export default function App() {
                     <Text style={styles.body}>{v.zh}</Text>
                   </View>
                   <Pressable onPress={() => handleSaveCard(v.word, v.zh)}>
-                    <Text style={styles.link}>⭐ 存入卡片</Text>
+                    <Text style={styles.link}>⭐ {t("practice.saveCard")}</Text>
                   </Pressable>
                 </Row>
               ))}
@@ -390,17 +420,17 @@ export default function App() {
 
   function renderCards() {
     return (
-      <Section title="單字與片語小卡" subtitle="你練習時存下來的重點">
-        <Card title="我的專屬單字庫" sub={`共 ${cards.length} 張卡片`}>
-          {cards.length === 0 ? <Text style={styles.body}>目前還沒有任何單字小卡喔。去聊天區擷取單字並儲存吧！</Text> : null}
+      <Section title={t("cards.title")} subtitle={t("cards.subtitle")}>
+        <Card title={t("cards.libraryTitle")} sub={t("cards.librarySub", { count: cards.length })}>
+          {cards.length === 0 ? <Text style={styles.body}>{t("cards.empty")}</Text> : null}
           {cards.map((c) => (
             <View key={c.id} style={styles.history}>
               <View style={styles.flex}>
                 <Text style={styles.phraseEn}>{c.word}</Text>
-                <Text style={styles.body}>{c.zh} · 來自：{c.context}</Text>
+                <Text style={styles.body}>{c.zh} · {t("cards.source", { context: c.context })}</Text>
               </View>
               <Pressable onPress={() => { Speech.stop(); Speech.speak(c.word, { language: "en-US", rate: 0.8 }); }}>
-                <Text style={styles.link}>🔊 發音</Text>
+                <Text style={styles.link}>🔊 {t("cards.pronounce")}</Text>
               </Pressable>
             </View>
           ))}
@@ -433,6 +463,23 @@ export default function App() {
   function renderSettings() {
     return (
       <Section title={t("settings.title")} subtitle={t("settings.subtitle")}>
+        <Card title="雲端帳號設定 (Cloud Account)">
+          {authUser ? (
+            <View>
+              <Text style={styles.body}>已登入雲端帳號：{authUser.email}</Text>
+              <GhostButton label="登出 (Logout)" onPress={handleLogout} />
+            </View>
+          ) : (
+            <View>
+              <Input label="信箱 (Email)" value={email} onChangeText={setEmail} keyboardType="email-address" />
+              <Input label="密碼 (Password)" value={password} onChangeText={setPassword} secureTextEntry />
+              <Row>
+                <View style={{ flex: 1 }}><Button label="登入 (Login)" onPress={handleLogin} /></View>
+                <View style={{ flex: 1 }}><GhostButton label="註冊帳號 (Register)" onPress={handleRegister} /></View>
+              </Row>
+            </View>
+          )}
+        </Card>
         <Card title={t("settings.profile")} sub={t("settings.profileSub")}>
           <Input label={t("settings.name")} value={name} onChangeText={setName} placeholder={t("settings.name")} />
           <Input label={t("settings.goal")} value={goal} onChangeText={setGoal} placeholder={t("settings.goal")} />

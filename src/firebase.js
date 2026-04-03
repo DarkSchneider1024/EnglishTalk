@@ -27,13 +27,21 @@ export function getFirebaseConfigSummary() {
   return firebaseConfig.projectId;
 }
 
-export function getDb() {
+export function getFirebaseApp() {
   if (!hasFirebaseConfig()) {
     return null;
   }
   if (!firebaseApp) {
     firebaseApp = initializeApp(firebaseConfig);
-    firestoreDb = getFirestore(firebaseApp, "englishtalk");
+  }
+  return firebaseApp;
+}
+
+export function getDb() {
+  const app = getFirebaseApp();
+  if (!app) return null;
+  if (!firestoreDb) {
+    firestoreDb = getFirestore(app, "englishtalk");
   }
   return firestoreDb;
 }
