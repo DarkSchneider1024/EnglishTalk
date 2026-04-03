@@ -2,6 +2,7 @@
   "name": "englishtalk",
   "version": "1.0.0",
   "private": true,
+  "homepage": "https://DarkSchneider1024.github.io/EnglishTalk",
   "main": "expo/AppEntry",
   "scripts": {
     "start": "expo start",
