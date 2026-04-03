@@ -7,8 +7,8 @@ const firebaseConfig = {
   projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || "englishtalk-d01a6",
   storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || "englishtalk-d01a6.firebasestorage.app",
   messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "667382669757",
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:667382669757:web:6b68179245bbc34634f2d4",
-  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-F74KNBPGB5"
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || "1:667382669757:web:54135ef4dbdc940634f2d4",
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID || "G-G9F66F4DDV"
 };
 
 let firebaseApp;
@@ -41,7 +41,7 @@ export function getDb() {
   const app = getFirebaseApp();
   if (!app) return null;
   if (!firestoreDb) {
-    firestoreDb = getFirestore(app, "englishtalk");
+    firestoreDb = getFirestore(app);
   }
   return firestoreDb;
 }
