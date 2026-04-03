@@ -30,6 +30,7 @@ jobs:
         run: |
           npx expo export -p web
           touch dist/.nojekyll
+          sed -i 's|src="/_expo/|src="./_expo/|g' dist/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
