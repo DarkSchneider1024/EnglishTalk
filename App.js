@@ -21,8 +21,8 @@ export default function App() {
   const [topic, setTopic] = useState("");
   const [geminiKey, setGeminiKey] = useState(ENV_KEY);
   const [message, setMessage] = useState("");
-  const [reply, setReply] = useState("");
-  const [vocabList, setVocabList] = useState([]);
+  const [currentChat, setCurrentChat] = useState([]);
+  const [feedback, setFeedback] = useState(null);
   const [cards, setCards] = useState([]);
   const [isListening, setIsListening] = useState(false);
   const [email, setEmail] = useState("");
@@ -66,6 +66,12 @@ export default function App() {
     setLevel((current) => current || dict.welcome.defaultLevel);
     setTopic((current) => current || dict.topics[0]);
   }, [dict]);
+
+  useEffect(() => {
+    setCurrentChat([]);
+    setFeedback(null);
+    setMemoryNotice("");
+  }, [topic, screen]);
 
   useEffect(() => {
     initializeMobileAds().catch((e) => setAdMessage(e.message));
@@ -158,71 +164,91 @@ export default function App() {
     setError("");
     setMemoryNotice("");
 
-    let nextReply = "";
-
     if (!geminiKey.trim()) {
-      nextReply = screen === "practice" ? t("common.fallbackReplyPractice") : t("common.fallbackReplyFreeTalk");
-    } else {
-      try {
-        const prompt = [
-          dict.gemini.prompt1,
-          dict.gemini.prompt2,
-          t("gemini.promptMode", { mode: screen }),
-          t("gemini.promptContext", { context: topic }),
-          t("gemini.promptMemory", { memory: buildMemoryPrompt() }),
-          t("gemini.promptInput", { input: userInput }),
-          'Return JSON ONLY with exact format: {"reply":"...", "vocab": [{"word": "apple", "zh": "蘋果(名詞)"}]}',
-        ].join("\n");
-
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiKey.trim())}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.8, responseMimeType: "application/json" },
-          }),
-        });
-
-        if (!res.ok) throw new Error(t("gemini.error", { status: res.status }));
-        const data = await res.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (!text) throw new Error(t("gemini.empty"));
-        const parsed = JSON.parse(text.replace(/```json|```/g, ''));
-        nextReply = parsed.reply || "";
-        setVocabList(parsed.vocab || []);
-      } catch (e) {
-        setError(e.message);
-        setLoading(false);
-        return;
-      }
+      setError("Please set your Gemini Key in Settings.");
+      setLoading(false);
+      return;
     }
 
     try {
+      const historyText = currentChat.map(c => `${c.role === "user" ? "Learner" : "You"}: ${c.text}`).join("\n");
+      const prompt = `You are a conversational partner in a '${topic}' scenario. The user is an English learner.
+Chat History:
+${historyText}
+Learner: "${userInput}"
+
+Reply naturally IN CHARACTER to continue the conversation. Do NOT provide tutoring, corrections, or break character.
+Return ONLY JSON format: {"reply": "your conversation response", "zh": "繁體中文翻譯"}`;
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiKey.trim())}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.8, responseMimeType: "application/json" } })
+      });
+      
+      if (!res.ok) throw new Error(t("gemini.error", { status: res.status }));
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error(t("gemini.empty"));
+      
+      const parsed = JSON.parse(text.replace(/```json|```/g, ''));
+      const nextReply = parsed.reply || "Thinking...";
+      
+      setCurrentChat(prev => [...prev, { role: "user", text: userInput }, { role: "model", text: nextReply, zh: parsed.zh }]);
+      
+      Speech.speak(nextReply, { language: "en-US", rate: 0.9 });
+      setMessage("");
+      
+      if (screen === "freeTalk" && plan === "free") setFreeCredits((prev) => Math.max(prev - 1, 0));
+    } catch(e) {
+      setError("API 錯誤：" + e.message);
+    }
+    setLoading(false);
+  }
+
+  async function getFeedback() {
+    Speech.stop();
+    if (!geminiKey.trim() || currentChat.length === 0) return;
+    setLoading(true);
+    setError("");
+    
+    try {
+      const historyText = currentChat.map(c => `${c.role === "user" ? "Learner" : "AI"}: ${c.text}`).join("\n");
+      const prompt = `You are an expert English tutor. Review the following conversation.
+Scenario: ${topic}
+Conversation:
+${historyText}
+
+Analyze the Learner's sentences ONLY. Provide grammar/vocabulary corrections, praise good usage, and extract useful vocabulary.
+Return ONLY JSON format: {"review": "Your overall review and corrections in Traditional Chinese", "vocab": [{"word": "word", "zh": "繁體中文解釋"}]}`;
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiKey.trim())}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: "application/json" } })
+      });
+      
+      if (!res.ok) throw new Error(t("gemini.error", { status: res.status }));
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const parsed = JSON.parse(text.replace(/```json|```/g, ''));
+      setFeedback(parsed);
+    } catch(e) {
+      setError("API 錯誤：" + e.message);
+    }
+    setLoading(false);
+  }
+
+  async function saveCurrentChat() {
+    try {
+      const summaryText = `${topic} 對話紀錄：\n` + currentChat.map(c => `${c.role==='user'?'我':'對方'}: ${c.text}`).join("\n") + "\n\n--- AI 導師點評 ---\n" + feedback?.review;
       const nextHistory = await saveMemory({
-        screen,
-        topic,
-        message: userInput,
-        reply: nextReply,
-        profile: { name, goal, level, plan, locale, geminiKey },
-        summary: `${topic} · ${userInput.slice(0, 36)}`,
+        screen, topic, message: "Chat Session", reply: feedback?.review || "N/A", profile: { name, goal, level, plan, locale, geminiKey }, summary: summaryText
       });
       setHistory(nextHistory);
       setMemoryNotice(t("practice.saved"));
       setWeeklyGoal((prev) => Math.min(prev + 1, 5));
-    } catch (e) {
-      setError(e.message);
-    }
-
-    setReply(nextReply);
-    if (nextReply) {
-      Speech.stop();
-      Speech.speak(nextReply, { language: "en-US", rate: 0.9 });
-    }
-    setMessage("");
-    if (screen === "freeTalk" && plan === "free") {
-      setFreeCredits((prev) => Math.max(prev - 1, 0));
-    }
-    setLoading(false);
+    } catch(e) { setError(e.message); }
   }
 
   function toggleListening() {
@@ -368,32 +394,39 @@ export default function App() {
             <View style={{ flex: 2 }}><Button label={loading ? t(screen === "practice" ? "practice.sending" : "freeTalk.sending") : t(screen === "practice" ? "practice.send" : "freeTalk.send")} onPress={askGemini} /></View>
             <View style={{ flex: 1 }}><GhostButton label={isListening ? "🔴 " + t("practice.listening") : "🎤 " + t("practice.voiceSpeak")} onPress={toggleListening} /></View>
           </Row>
-          {reply ? (
-            <View style={styles.replyBox}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={styles.replyLabel}>{t("common.aiCoach")}</Text>
-                <Pressable onPress={() => { Speech.stop(); Speech.speak(reply, { language: "en-US", rate: 0.9 }) }}>
-                  <Text style={styles.link}>🔊 發音</Text>
-                </Pressable>
-              </View>
-              <Text style={styles.body}>{reply}</Text>
-            </View>
+          {currentChat.map((msg, i) => (
+             <View key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', backgroundColor: msg.role === 'user' ? '#eef5f6' : '#fffdf8', borderColor: "rgba(61,52,38,0.08)", borderWidth: 1, padding: 14, borderRadius: 18, marginBottom: 12, maxWidth: '85%' }}>
+                <Text style={msg.role === 'user' ? styles.label : styles.phraseEn}>{msg.text}</Text>
+                {msg.zh && <Text style={{...styles.body, fontSize: 13, marginTop: 4}}>{msg.zh}</Text>}
+             </View>
+          ))}
+
+          {currentChat.length > 0 && !feedback ? (
+             <View style={{ marginTop: 10, alignItems: 'center' }}>
+               <GhostButton label="📝 結束對話並取得語法指導" onPress={getFeedback} />
+             </View>
           ) : null}
-          {vocabList && vocabList.length > 0 ? (
-            <View style={styles.replyBox}>
-              <Text style={styles.replyLabel}>💡 {t("practice.vocabHeader")}</Text>
-              {vocabList.map((v) => (
-                <Row key={v.word || Math.random().toString()}>
-                  <View style={styles.flex}>
-                    <Text style={styles.phraseEn}>{v.word}</Text>
-                    <Text style={styles.body}>{v.zh}</Text>
-                  </View>
-                  <Pressable onPress={() => handleSaveCard(v.word, v.zh)}>
-                    <Text style={styles.link}>⭐ {t("practice.saveCard")}</Text>
-                  </Pressable>
-                </Row>
-              ))}
-            </View>
+
+          {feedback ? (
+             <View style={styles.replyBox}>
+               <Text style={styles.replyLabel}>👨‍🏫 AI 語法與單字總結</Text>
+               <Text style={styles.body}>{feedback.review}</Text>
+               <Text style={{...styles.replyLabel, marginTop: 10}}>💡 {t("practice.vocabHeader")}</Text>
+               {feedback.vocab && feedback.vocab.map(v => (
+                  <Row key={v.word}>
+                     <View style={styles.flex}>
+                       <Text style={styles.phraseEn}>{v.word}</Text>
+                       <Text style={styles.body}>{v.zh}</Text>
+                     </View>
+                     <Pressable onPress={() => handleSaveCard(v.word, v.zh)}>
+                       <Text style={styles.link}>⭐ {t("practice.saveCard")}</Text>
+                     </Pressable>
+                  </Row>
+               ))}
+               <View style={{marginTop: 10}}>
+                 <Button label="儲存這次的對話到記憶" onPress={saveCurrentChat} />
+               </View>
+             </View>
           ) : null}
           {memoryNotice ? <Text style={styles.success}>{memoryNotice}</Text> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
