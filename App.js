@@ -388,17 +388,26 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
     );
   }
 
+  const [lessonId, setLessonId] = useState("intro");
+
   function renderLesson() {
+    const lessonKeys = Object.keys(dict.lessons);
+    const lessonTitles = lessonKeys.map(k => dict.lessons[k].title);
+    const currentLesson = dict.lessons[lessonId] || dict.lessons.intro;
+
     return (
-      <Section title={dict.lessons.intro.video} subtitle={t("lesson.subtitle")}>
+      <Section title={currentLesson.video || currentLesson.title} subtitle={t("lesson.subtitle")}>
         <Card title={t("lesson.switcher")} sub={t("lesson.switcherSub")}>
-          <ChipRow values={[dict.lessons.intro.title, dict.lessons.cafe.title]} active={dict.lessons.intro.title} />
+          <ChipRow values={lessonTitles} active={currentLesson.title} onSelect={(title) => {
+            const key = lessonKeys.find(k => dict.lessons[k].title === title);
+            if (key) setLessonId(key);
+          }} />
         </Card>
-        <Card title={dict.lessons.intro.title} sub={dict.lessons.intro.duration}>
-          <Pressable onPress={() => { Speech.stop(); Speech.speak(dict.lessons.intro.phrases.map(p=>p[0]).join(". "), { language: "en-US", rate: 0.8 }); }}>
+        <Card title={currentLesson.title} sub={currentLesson.duration}>
+          <Pressable onPress={() => { Speech.stop(); Speech.speak(currentLesson.phrases.map(p=>p[0]).join(". "), { language: "en-US", rate: 0.8 }); }}>
             <Text style={styles.videoBadge}>{t("common.play")} 🔊</Text>
           </Pressable>
-          {dict.lessons.intro.phrases.map(([en, zh]) => <Phrase key={en} en={en} zh={zh} onPress={() => { Speech.stop(); Speech.speak(en, { language: "en-US", rate: 0.8 }); }} />)}
+          {currentLesson.phrases.map(([en, zh]) => <Phrase key={en} en={en} zh={zh} onPress={() => { Speech.stop(); Speech.speak(en, { language: "en-US", rate: 0.8 }); }} />)}
           <Button label={t("lesson.goPractice")} onPress={() => setScreen("practice")} />
         </Card>
       </Section>
