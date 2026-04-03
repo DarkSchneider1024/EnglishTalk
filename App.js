@@ -28,6 +28,9 @@ export default function App() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [authUser, setAuthUser] = useState(null);
+  const [showingAd, setShowingAd] = useState(false);
+  const [adCountdown, setAdCountdown] = useState(0);
+  const [pendingFeedback, setPendingFeedback] = useState(null);
   const [freeCredits, setFreeCredits] = useState(3);
   const [streak, setStreak] = useState(1);
   const [weeklyGoal, setWeeklyGoal] = useState(0);
@@ -232,11 +235,32 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
       const data = await res.json();
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
       const parsed = JSON.parse(text.replace(/```json|```/g, ''));
-      setFeedback(parsed);
+      
+      // 免費用戶：先跳廣告倒數，再顯示報告
+      if (plan !== "premium" && plan !== "plus") {
+        setPendingFeedback(parsed);
+        setShowingAd(true);
+        setAdCountdown(10);
+      } else {
+        setFeedback(parsed);
+      }
     } catch(e) {
       setError("API 錯誤：" + e.message);
     }
     setLoading(false);
+  }
+
+  // 廣告倒數計時器
+  useEffect(() => {
+    if (!showingAd || adCountdown <= 0) return;
+    const timer = setTimeout(() => setAdCountdown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [showingAd, adCountdown]);
+
+  function dismissAd() {
+    setShowingAd(false);
+    setFeedback(pendingFeedback);
+    setPendingFeedback(null);
   }
 
   async function saveCurrentChat() {
@@ -573,6 +597,32 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
             {content}
           </ScrollView>
         </View>
+
+        {/* 廣告插頁 - 免費用戶在取得學習報告前必須觀看 */}
+        {showingAd ? (
+          <View style={styles.adOverlay}>
+            <View style={styles.adModal}>
+              <Text style={styles.adTitle}>📢 廣告時間</Text>
+              <Text style={styles.adSubtitle}>感謝使用免費版！觀看完廣告後即可查閱您的學習報告。</Text>
+              <Text style={styles.adSubtitle}>升級 Premium 方案可跳過所有廣告。</Text>
+              
+              <View style={styles.adSlot}>
+                <AdMobBannerCard slot="" />
+              </View>
+
+              {adCountdown > 0 ? (
+                <View style={styles.adCountdownBox}>
+                  <Text style={styles.adCountdownText}>⏳ 請稍候 {adCountdown} 秒...</Text>
+                </View>
+              ) : (
+                <Pressable style={styles.btn} onPress={dismissAd}>
+                  <Text style={styles.btnText}>✅ 查看我的學習報告</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+        ) : null}
+
       </SafeAreaView>
     </LinearGradient>
   );
@@ -742,4 +792,12 @@ const styles = StyleSheet.create({
   planPriceActive: { color: "#ffe2b8" },
   planBodyActive: { color: "#d9ecf3" },
   videoBadge: { alignSelf: "flex-start", backgroundColor: "#f2d2aa", color: "#9b5d25", borderRadius: 999, overflow: "hidden", paddingHorizontal: 12, paddingVertical: 8, fontSize: 12, fontWeight: "800" },
+  // 廣告插頁樣式
+  adOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", alignItems: "center", zIndex: 9999 },
+  adModal: { backgroundColor: "#fff", borderRadius: 28, padding: 28, width: "90%", maxWidth: 440, gap: 14, alignItems: "center" },
+  adTitle: { fontSize: 22, fontWeight: "800", color: "#1f1d1a" },
+  adSubtitle: { fontSize: 14, color: "#6f665a", textAlign: "center", lineHeight: 22 },
+  adSlot: { width: "100%", minHeight: 120, borderRadius: 18, overflow: "hidden", marginVertical: 8 },
+  adCountdownBox: { backgroundColor: "#eef5f6", borderRadius: 16, paddingVertical: 16, paddingHorizontal: 24 },
+  adCountdownText: { fontSize: 18, fontWeight: "800", color: "#214e63", textAlign: "center" },
 });

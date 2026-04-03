@@ -31,6 +31,8 @@ jobs:
           npx expo export -p web
           touch dist/.nojekyll
           sed -i 's|src="/_expo/|src="./_expo/|g' dist/index.html
+          # 注入 AdSense 驗證用的 meta 標籤到 <head>
+          sed -i 's|</head>|<meta name="google-adsense-account" content="ca-pub-4011130961445948">\n</head>|' dist/index.html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4

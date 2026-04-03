@@ -1,8 +1,5 @@
 {
-  "firestore": [
-    {
-      "database": "englishtalk",
-      "rules": "firestore.rules"
-    }
-  ]
+  "firestore": {
+    "rules": "firestore.rules"
+  }
 }
