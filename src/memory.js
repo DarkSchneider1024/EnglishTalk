@@ -31,18 +31,21 @@ export async function loadProfile() {
 }
 
 export async function saveProfile(profile) {
-  const learnerId = await getLearnerId();
-  const payload = { ...profile, learnerId, updatedAt: Date.now() };
-  await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(payload));
-  const db = getDb();
-  if (db) {
-    try {
-      await setDoc(doc(db, "learners", learnerId), payload, { merge: true });
-    } catch (err) {
-      console.warn("Firebase Profile Sync Error:", err.message);
+  try {
+    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    const _db = getDb();
+    if (_db) {
+      const learnerId = await getLearnerId();
+      // ⚠️ 安全保護：在推送到雲端前，拔除個人的 Gemini API Key，確保密碼絕不上傳到資料庫
+      const cloudProfile = { ...profile, learnerId, updatedAt: Date.now() };
+      delete cloudProfile.geminiKey;
+      
+      await setDoc(doc(_db, `learners`, learnerId), cloudProfile, { merge: true });
     }
+  } catch (err) {
+    console.warn("Firebase Profile Sync Error:", err.message);
   }
-  return payload;
+  return profile;
 }
 
 export async function loadMemories() {
