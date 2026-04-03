@@ -379,7 +379,7 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
             <GhostButton label={t("home.startPractice")} onPress={() => setScreen("practice")} />
           </Row>
         </Card>
-        <Card title={t("home.memoryTitle")} sub={memoryMode === "firebase" ? t("review.sourceFirebase") : t("review.sourceLocal")}>
+        <Card title={t("home.memoryTitle")}>
           <Text style={styles.body}>
             {latestMemory ? t("home.memorySummary", { summary: latestMemory.summary || latestMemory.topic }) : t("home.memoryEmpty")}
           </Text>
@@ -462,8 +462,8 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
   function renderReview() {
     return (
       <Section title={t("review.title")} subtitle={t("review.subtitle")}>
-        <Card title={t("review.syncStatus")} sub={memoryMode === "firebase" ? t("review.sourceFirebase") : t("review.sourceLocal")}>
-          <Text style={styles.body}>{memoryStatus}</Text>
+        <Card title={t("review.syncStatus")}>
+          <Text style={styles.body}>{t("review.recentSub")}</Text>
         </Card>
         <Card title={t("review.recent")} sub={t("review.recentSub")}>
           {history.length === 0 ? <Text style={styles.body}>{t("review.empty")}</Text> : null}
@@ -545,8 +545,6 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
           <Text style={styles.helper}>{t("settings.helper")}</Text>
         </Card>
         <Card title={t("settings.memory")} sub={t("settings.memorySub")}>
-          <Text style={styles.body}>{memoryMode === "firebase" ? t("settings.firebaseReady") : t("settings.firebaseMissing")}</Text>
-          <Text style={styles.helper}>{t("settings.learnerId")}: {learnerId || "-"}</Text>
           <Text style={styles.helper}>{t("settings.memoryCount", { count: history.length })}</Text>
         </Card>
         <Card title={t("settings.language")} sub={t("settings.languageSub")}>
