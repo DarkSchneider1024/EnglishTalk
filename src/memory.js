@@ -131,6 +131,35 @@ export async function saveCard(card) {
   return next;
 }
 
+export async function loadSystemGeminiKey() {
+  const db = getDb();
+  if (!db) return null;
+  try {
+    // 預設 System ID (MD5 of 'gemini_config')
+    const docRef = doc(db, "system", "0317e07663d2745a5575b5f903740e53");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().apiKey;
+    }
+  } catch (err) {
+    console.warn("Failed to load System Gemini Key:", err.message);
+  }
+  return null;
+}
+
+export async function setupSystemGeminiKey(key) {
+  const db = getDb();
+  if (!db) return false;
+  try {
+    const docRef = doc(db, "system", "0317e07663d2745a5575b5f903740e53");
+    await setDoc(docRef, { apiKey: key, updatedAt: Date.now() });
+    return true;
+  } catch (err) {
+    console.error("Setup System Gemini Key Error:", err.message);
+    return false;
+  }
+}
+
 export function getMemoryMode() {
   return hasFirebaseConfig() ? "firebase" : "local";
 }

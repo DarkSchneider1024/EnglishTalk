@@ -31,6 +31,12 @@ export default {
         },
       ],
       [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.667382669757-v3f7s9v3f7s9v3f7s9v3f7s9v3f7s9v3"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           android: {
@@ -43,5 +49,8 @@ export default {
         },
       ],
     ],
+    experiments: {
+      baseUrl: "/EnglishTalk",
+    },
   },
 };

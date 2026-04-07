@@ -1,13 +1,16 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, Pressable, SafeAreaView, ScrollView, Text, TextInput, View } from "react-native";
 import * as Speech from "expo-speech";
 import { AdMobBannerCard, getAdMobDebugInfo, initializeMobileAds, showRewardedCreditAd } from "./src/ads/admob";
 import { createI18n, detectLocale } from "./src/i18n";
-import { getLearnerId, getMemoryMode, getMemoryStatusLabel, loadMemories, loadProfile, saveMemory, saveProfile, loadCards, saveCard } from "./src/memory";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "firebase/auth";
+import { getLearnerId, getMemoryMode, getMemoryStatusLabel, loadMemories, loadProfile, saveMemory, saveProfile, loadCards, saveCard, loadSystemGeminiKey, setupSystemGeminiKey } from "./src/memory";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithCredential, signInWithPopup, linkWithPopup, linkWithCredential } from "firebase/auth";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { getFirebaseApp } from "./src/firebase";
+import { styles } from "./src/styles";
+import { Section, Card, Row, Input, Button, GhostButton, Stat, ChipRow, Phrase, History, Plan } from "./src/components";
 
 const ENV_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || "";
 
@@ -42,6 +45,11 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [learnerId, setLearnerId] = useState("");
   const [memoryNotice, setMemoryNotice] = useState("");
+  const [accent, setAccent] = useState("en-US");
+  const [speechRate, setSpeechRate] = useState(0.9);
+  const [showHints, setShowHints] = useState(true);
+  const [completedLessons, setCompletedLessons] = useState([]);
+  const [personalizedLessons, setPersonalizedLessons] = useState([]);
   const profileLoadedRef = useRef(false);
   const adMobInfo = useMemo(() => getAdMobDebugInfo(), []);
 
@@ -77,24 +85,53 @@ export default function App() {
   }, [topic, screen]);
 
   useEffect(() => {
+    const app = getFirebaseApp();
+    if (app) {
+      const auth = getAuth(app);
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        setAuthUser(user);
+        if (user) {
+          setLearnerId(user.uid);
+          loadProfile().then(p => { if(p) setName(p.name || name); });
+        } else {
+          getLearnerId().then(setLearnerId);
+        }
+      });
+      return unsubscribe;
+    }
+  }, []);
+
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || "YOUR_WEB_CLIENT_ID_HERE",
+    });
+  }, []);
+
+  useEffect(() => {
     initializeMobileAds().catch((e) => setAdMessage(e.message));
   }, []);
 
   useEffect(() => {
     let alive = true;
 
-    async function bootstrap() {
+    async function loadData() {
+      if (!learnerId) return;
       try {
-        const [profile, memories, savedCards, id] = await Promise.all([loadProfile(), loadMemories(), loadCards(), getLearnerId()]);
+        const [profile, memories, savedCards] = await Promise.all([loadProfile(), loadMemories(), loadCards()]);
         if (!alive) return;
-        setLearnerId(id);
+        
         if (profile) {
           setName(profile.name || "Sharon");
           setGoal(profile.goal || dict.welcome.defaultGoal);
           setLevel(profile.level || dict.welcome.defaultLevel);
           setPlan(profile.plan || "premium");
           setLocale(profile.locale || "zh");
-          if (profile.geminiKey !== undefined) setGeminiKey(profile.geminiKey);
+          if (profile.geminiKey !== undefined && profile.geminiKey.trim() !== "") {
+            setGeminiKey(profile.geminiKey);
+          } else {
+            const defaultKey = await loadSystemGeminiKey();
+            if (defaultKey) setGeminiKey(defaultKey);
+          }
 
           const today = new Date().toDateString();
           let currentStreak = profile.streak || 1;
@@ -108,24 +145,26 @@ export default function App() {
             } else if (profile.lastActiveDate) {
               currentStreak = 1;
             }
-            currentCredits = 3; // Reset daily credits
+            currentCredits = 3;
           }
 
           setStreak(currentStreak);
           setFreeCredits(currentCredits);
           setWeeklyGoal(profile.weeklyGoal || 0);
+          if (profile.accent) setAccent(profile.accent);
+          if (profile.speechRate) setSpeechRate(profile.speechRate);
+          if (profile.showHints !== undefined) setShowHints(profile.showHints);
+          if (profile.completedLessons) setCompletedLessons(profile.completedLessons);
+          if (profile.personalizedLessons) setPersonalizedLessons(profile.personalizedLessons);
         } else {
-          setLocale("zh");
-          setStreak(1);
-          setFreeCredits(3);
-          setWeeklyGoal(0);
+          // No profile, fetch default key
+          const defaultKey = await loadSystemGeminiKey();
+          if (defaultKey) setGeminiKey(defaultKey);
         }
         setHistory(memories);
         setCards(savedCards);
       } catch (e) {
-        if (alive) {
-          setError(e.message);
-        }
+        if (alive) setError(e.message);
       } finally {
         if (alive) {
           profileLoadedRef.current = true;
@@ -134,17 +173,22 @@ export default function App() {
       }
     }
 
-    bootstrap();
-    return () => {
-      alive = false;
-    };
+    loadData();
+    return () => { alive = false; };
+  }, [learnerId, dict]);
+
+  useEffect(() => {
+    getLearnerId().then(setLearnerId);
   }, []);
 
   useEffect(() => {
     if (!profileLoadedRef.current || booting) return;
     const today = new Date().toDateString();
-    saveProfile({ name, goal, level, plan, locale, geminiKey, streak, freeCredits, weeklyGoal, lastActiveDate: today }).catch((e) => setError(e.message));
-  }, [name, goal, level, plan, locale, geminiKey, streak, freeCredits, weeklyGoal, booting]);
+    saveProfile({ 
+      name, goal, level, plan, locale, geminiKey, streak, freeCredits, weeklyGoal, lastActiveDate: today,
+      accent, speechRate, showHints, completedLessons, personalizedLessons
+    }).catch((e) => setError(e.message));
+  }, [name, goal, level, plan, locale, geminiKey, streak, freeCredits, weeklyGoal, booting, accent, speechRate, showHints, completedLessons, personalizedLessons]);
 
   function buildMemoryPrompt() {
     if (history.length === 0) return "none";
@@ -159,7 +203,8 @@ export default function App() {
     const userInput = message.trim();
     if (!userInput || loading) return;
     if (screen === "freeTalk" && plan === "free" && freeCredits <= 0) {
-      setError(t("freeTalk.noCredits"));
+      setError("對話次數已達上限。觀看一段廣告即可獲得更多免費額度！");
+      // 優化建議：此處可直接觸發 rewardAd()
       return;
     }
 
@@ -167,76 +212,90 @@ export default function App() {
     setError("");
     setMemoryNotice("");
 
-    if (!geminiKey.trim()) {
-      setError("Please set your Gemini Key in Settings.");
-      setLoading(false);
-      return;
-    }
+    const textToSubmit = userInput;
+    await processGeminiAsk(textToSubmit);
+  }
 
+  async function processGeminiAsk(userInput) {
+    setLoading(true);
     try {
-      const historyText = currentChat.map(c => `${c.role === "user" ? "Learner" : "You"}: ${c.text}`).join("\n");
-      const prompt = `You are a conversational partner in a '${topic}' scenario. The user is an English learner.
-Chat History:
-${historyText}
-Learner: "${userInput}"
-
+      const proxyUrl = process.env.EXPO_PUBLIC_VERCEL_PROXY_URL || "https://your-vercel-app.vercel.app/api/gemini";
+      
+      const historyItems = currentChat.map(c => ({
+        role: c.role === "user" ? "user" : "model",
+        parts: [{ text: c.text }]
+      }));
+      
+      const promptText = `You are a conversational partner in a '${topic}' scenario. The user is an English learner.
 Reply naturally IN CHARACTER to continue the conversation. Do NOT provide tutoring, corrections, or break character.
 Return ONLY JSON format: {"reply": "your conversation response", "zh": "繁體中文翻譯"}`;
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiKey.trim())}`, {
+      const res = await fetch(proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.8, responseMimeType: "application/json" } })
+        body: JSON.stringify({
+          prompt: userInput,
+          history: [...historyItems, { role: "user", parts: [{ text: promptText }] }, { role: "user", parts: [{ text: userInput }] }],
+          generationConfig: { temperature: 0.8, responseMimeType: "application/json" }
+        })
       });
       
-      if (!res.ok) throw new Error(t("gemini.error", { status: res.status }));
       const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error(t("gemini.empty"));
-      
-      const parsed = JSON.parse(text.replace(/```json|```/g, ''));
+      if (!res.ok) throw new Error(`${data.error || "未知錯誤"} ${data.debug || ""}`);
+
+      const parsed = JSON.parse(data.text.replace(/```json|```/g, ""));
       const nextReply = parsed.reply || "Thinking...";
       
       setCurrentChat(prev => [...prev, { role: "user", text: userInput }, { role: "model", text: nextReply, zh: parsed.zh }]);
-      
-      Speech.speak(nextReply, { language: "en-US", rate: 0.9 });
+      Speech.speak(nextReply, { language: accent, rate: speechRate });
       setMessage("");
       
       if (screen === "freeTalk" && plan === "free") setFreeCredits((prev) => Math.max(prev - 1, 0));
     } catch(e) {
-      setError("API 錯誤：" + e.message);
+      setError("連線伺服器錯誤：" + e.message);
     }
     setLoading(false);
   }
 
   async function getFeedback() {
     Speech.stop();
-    if (!geminiKey.trim() || currentChat.length === 0) return;
+    if (currentChat.length === 0) return;
     setLoading(true);
     setError("");
     
     try {
-      const historyText = currentChat.map(c => `${c.role === "user" ? "Learner" : "AI"}: ${c.text}`).join("\n");
-      const prompt = `You are an expert English tutor. Review the following conversation.
-Scenario: ${topic}
-Conversation:
-${historyText}
+      const proxyUrl = process.env.EXPO_PUBLIC_VERCEL_PROXY_URL || "https://your-vercel-app.vercel.app/api/gemini";
 
-Analyze the Learner's sentences ONLY. Provide grammar/vocabulary corrections, praise good usage, and extract useful vocabulary.
-Return ONLY JSON format: {"review": "Your overall review and corrections in Traditional Chinese", "vocab": [{"word": "word", "zh": "繁體中文解釋"}]}`;
+      const historyItems = currentChat.map(c => ({
+        role: c.role === "user" ? "user" : "model",
+        parts: [{ text: c.text }]
+      }));
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(geminiKey.trim())}`, {
+      const promptText = `You are an expert English tutor reviewing a '${topic}' scenario conversation.
+Review the Learner's sentences.
+Return ONLY JSON format: 
+{
+  "review": "Overall review in Traditional Chinese",
+  "categories": { "grammar": [], "vocabulary": [], "naturalness": [] },
+  "vocab": [{"word": "word", "ipa": "/phonetic_symbol/", "zh": "繁體中文"}],
+  "extendedPhrases": [{"en": "useful phrase", "zh": "翻譯"}]
+}`;
+
+      const res = await fetch(proxyUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, responseMimeType: "application/json" } })
+        body: JSON.stringify({
+          prompt: "Provide Feedback",
+          history: [...historyItems, { role: "user", parts: [{ text: promptText }] }],
+          generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
+        })
       });
       
-      if (!res.ok) throw new Error(t("gemini.error", { status: res.status }));
       const data = await res.json();
-      const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      const parsed = JSON.parse(text.replace(/```json|```/g, ''));
+      if (!res.ok) throw new Error(`${data.error || "未知錯誤"} ${data.debug || ""}`);
+
+      const parsed = JSON.parse(data.text.replace(/```json|```/g, ""));
       
-      // 免費用戶：先跳廣告倒數，再顯示報告
       if (plan !== "premium" && plan !== "plus") {
         setPendingFeedback(parsed);
         setShowingAd(true);
@@ -245,7 +304,7 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
         setFeedback(parsed);
       }
     } catch(e) {
-      setError("API 錯誤：" + e.message);
+      setError("AI 導師連線失敗：" + e.message);
     }
     setLoading(false);
   }
@@ -270,6 +329,12 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
         screen, topic, message: "Chat Session", reply: feedback?.review || "N/A", profile: { name, goal, level, plan, locale, geminiKey }, summary: summaryText
       });
       setHistory(nextHistory);
+      
+      // 保存延伸課程
+      if (feedback?.extendedPhrases) {
+        setPersonalizedLessons(prev => [...feedback.extendedPhrases, ...prev].slice(0, 10));
+      }
+
       setMemoryNotice(t("practice.saved"));
       setWeeklyGoal((prev) => Math.min(prev + 1, 5));
     } catch(e) { setError(e.message); }
@@ -292,7 +357,14 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
     recognition.onstart = () => setIsListening(true);
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
-      setMessage((prev) => (prev ? prev + " " + transcript : transcript));
+      setMessage(transcript);
+      // 優化：語音辨識完成後自動進入問答
+      if (transcript.trim() && !loading) {
+        setTimeout(() => {
+          setLoading(true);
+          processGeminiAsk(transcript.trim());
+        }, 100);
+      }
     };
     recognition.onerror = (e) => {
       if (e.error === "no-speech") {
@@ -307,9 +379,9 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
     recognition.start();
   }
 
-  async function handleSaveCard(word, zh) {
+  async function handleSaveCard(word, zh, ipa) {
     try {
-      const nextCards = await saveCard({ word, zh, context: topic });
+      const nextCards = await saveCard({ word, zh, ipa, context: topic });
       setCards(nextCards);
       setMemoryNotice(t("practice.savedCard", { word }));
     } catch(e) {
@@ -324,6 +396,49 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
       setAdMessage(t("plans.rewardSuccess", { amount: reward.amount, type: reward.type }));
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  async function handleGoogleLogin() {
+    try {
+      const app = getFirebaseApp();
+      if (!app) return alert("Firebase 未設定");
+      const auth = getAuth(app);
+      
+      if (Platform.OS === "web") {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+      } else {
+        await GoogleSignin.hasPlayServices();
+        const { data } = await GoogleSignin.signIn();
+        const googleCredential = GoogleAuthProvider.credential(data.idToken);
+        await signInWithCredential(auth, googleCredential);
+      }
+      alert("Google 登入成功！");
+    } catch (e) {
+      alert("Google 登入失敗：" + e.message);
+    }
+  }
+
+  async function handleLinkGoogle() {
+    try {
+      const app = getFirebaseApp();
+      if (!app) return alert("Firebase 未設定");
+      const auth = getAuth(app);
+      if (!auth.currentUser) return;
+
+      if (Platform.OS === "web") {
+        const provider = new GoogleAuthProvider();
+        await linkWithPopup(auth.currentUser, provider);
+      } else {
+        await GoogleSignin.hasPlayServices();
+        const { data } = await GoogleSignin.signIn();
+        const googleCredential = GoogleAuthProvider.credential(data.idToken);
+        await linkWithCredential(auth.currentUser, googleCredential);
+      }
+      alert("Google 帳戶綁定成功！");
+    } catch (e) {
+      alert("綁定失敗：" + e.message);
     }
   }
 
@@ -347,9 +462,13 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
 
   async function handleLogout() {
     const app = getFirebaseApp();
-    if(app) await signOut(getAuth(app));
+    if(app) {
+      await signOut(getAuth(app));
+      await GoogleSignin.signOut();
+    }
     setEmail("");
     setPassword("");
+    setAuthUser(null);
   }
 
   function renderWelcome() {
@@ -360,6 +479,9 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
           <Input label={t("welcome.goal")} value={goal} onChangeText={setGoal} placeholder={t("welcome.defaultGoal")} />
           <Input label={t("welcome.level")} value={level} onChangeText={setLevel} placeholder={t("welcome.defaultLevel")} />
           <Button label={t("welcome.enterApp")} onPress={() => setScreen("home")} />
+          <View style={{ marginTop: 12 }}>
+            <GhostButton label="或者使用 Google 登入" onPress={handleGoogleLogin} style={{ borderColor: '#4285F4' }} />
+          </View>
         </Card>
       </Section>
     );
@@ -401,15 +523,27 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
           <ChipRow values={lessonTitles} active={currentLesson.title} onSelect={(title) => {
             const key = lessonKeys.find(k => dict.lessons[k].title === title);
             if (key) setLessonId(key);
-          }} />
+          }} completedItems={completedLessons} />
         </Card>
         <Card title={currentLesson.title} sub={currentLesson.duration}>
-          <Pressable onPress={() => { Speech.stop(); Speech.speak(currentLesson.phrases.map(p=>p[0]).join(". "), { language: "en-US", rate: 0.8 }); }}>
+          <Pressable onPress={() => { Speech.stop(); Speech.speak(currentLesson.phrases.map(p=>p[0]).join(". "), { language: accent, rate: speechRate }); }}>
             <Text style={styles.videoBadge}>{t("common.play")} 🔊</Text>
           </Pressable>
-          {currentLesson.phrases.map(([en, zh]) => <Phrase key={en} en={en} zh={zh} onPress={() => { Speech.stop(); Speech.speak(en, { language: "en-US", rate: 0.8 }); }} />)}
-          <Button label={t("lesson.goPractice")} onPress={() => setScreen("practice")} />
+          {currentLesson.phrases.map(([en, zh]) => <Phrase key={en} en={en} zh={zh} onPress={() => { Speech.stop(); Speech.speak(en, { language: accent, rate: speechRate }); }} showZh={showHints} />)}
+          <Row>
+            <Button label={completedLessons.includes(lessonId) ? "✅ 已完成 " : "🎯 標記為完成"} 
+                    onPress={() => setCompletedLessons(prev => prev.includes(lessonId) ? prev.filter(i => i !== lessonId) : [...prev, lessonId])} />
+            <GhostButton label={t("lesson.goPractice")} onPress={() => setScreen("practice")} />
+          </Row>
         </Card>
+
+        {personalizedLessons.length > 0 && (
+          <Card title="💡 為您生成的延伸練習" sub="基於您剛才的對話紀錄">
+             {personalizedLessons.map((p, idx) => (
+                <Phrase key={idx} en={p.en} zh={p.zh} onPress={() => Speech.speak(p.en, { language: accent, rate: speechRate })} showZh={showHints} />
+             ))}
+          </Card>
+        )}
       </Section>
     );
   }
@@ -425,12 +559,15 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
           <Input label={screen === "practice" ? t("practice.yourReply") : t("freeTalk.input")} value={message} onChangeText={setMessage} placeholder="Type English here..." multiline />
           <Row>
             <View style={{ flex: 2 }}><Button label={loading ? t(screen === "practice" ? "practice.sending" : "freeTalk.sending") : t(screen === "practice" ? "practice.send" : "freeTalk.send")} onPress={askGemini} /></View>
-            <View style={{ flex: 1 }}><GhostButton label={isListening ? "🔴 " + t("practice.listening") : "🎤 " + t("practice.voiceSpeak")} onPress={toggleListening} /></View>
+            <View style={{ flex: 1.5 }}><GhostButton label={isListening ? "🔴 Listening..." : "🎤 Speak Now"} onPress={toggleListening} /></View>
           </Row>
+          <Text style={[styles.helper, { textAlign: 'center', marginTop: 4 }]}>
+            {isListening ? "Talking to AI... (Auto-send enabled)" : "Tap microphone to speak, I will reply automatically."}
+          </Text>
           {currentChat.map((msg, i) => (
              <View key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', backgroundColor: msg.role === 'user' ? '#eef5f6' : '#fffdf8', borderColor: "rgba(61,52,38,0.08)", borderWidth: 1, padding: 14, borderRadius: 18, marginBottom: 12, maxWidth: '85%' }}>
                 <Text style={msg.role === 'user' ? styles.label : styles.phraseEn}>{msg.text}</Text>
-                {msg.zh && <Text style={{...styles.body, fontSize: 13, marginTop: 4}}>{msg.zh}</Text>}
+                {msg.zh && showHints && <Text style={{...styles.body, fontSize: 13, marginTop: 4}}>{msg.zh}</Text>}
              </View>
           ))}
 
@@ -442,22 +579,33 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
 
           {feedback ? (
              <View style={styles.replyBox}>
-               <Text style={styles.replyLabel}>👨‍🏫 AI 語法與單字總結</Text>
+               <Text style={styles.replyLabel}>👨‍🏫 AI 強化回饋</Text>
                <Text style={styles.body}>{feedback.review}</Text>
-               <Text style={{...styles.replyLabel, marginTop: 10}}>💡 {t("practice.vocabHeader")}</Text>
+               
+               {feedback.categories && Object.entries(feedback.categories).map(([k, items]) => (
+                 <View key={k} style={{ marginTop: 8 }}>
+                    <Text style={{ fontWeight: '800', color: '#15344f', fontSize: 13 }}>• {k.toUpperCase()}</Text>
+                    {items.map((it, idx) => <Text key={idx} style={[styles.body, { fontSize: 13 }]}>- {it}</Text>)}
+                 </View>
+               ))}
+
+               <Text style={{...styles.replyLabel, marginTop: 10}}>💡重點單字</Text>
                {feedback.vocab && feedback.vocab.map(v => (
                   <Row key={v.word}>
                      <View style={styles.flex}>
-                       <Text style={styles.phraseEn}>{v.word}</Text>
+                       <Row style={{ alignItems: 'baseline' }}>
+                         <Text style={styles.phraseEn}>{v.word}</Text>
+                         {v.ipa && <Text style={[styles.body, { color: '#8f4f1f', marginLeft: 6, fontSize: 13 }]}>{v.ipa}</Text>}
+                       </Row>
                        <Text style={styles.body}>{v.zh}</Text>
                      </View>
-                     <Pressable onPress={() => handleSaveCard(v.word, v.zh)}>
-                       <Text style={styles.link}>⭐ {t("practice.saveCard")}</Text>
+                     <Pressable onPress={() => handleSaveCard(v.word, v.zh, v.ipa)}>
+                       <Text style={styles.link}>⭐ 存卡</Text>
                      </Pressable>
                   </Row>
                ))}
                <View style={{marginTop: 10}}>
-                 <Button label="儲存這次的對話到記憶" onPress={saveCurrentChat} />
+                 <Button label="💾 儲存並產出延伸練習" onPress={saveCurrentChat} />
                </View>
              </View>
           ) : null}
@@ -492,10 +640,13 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
           {cards.map((c) => (
             <View key={c.id} style={styles.history}>
               <View style={styles.flex}>
-                <Text style={styles.phraseEn}>{c.word}</Text>
+                <Row style={{ alignItems: 'baseline' }}>
+                  <Text style={styles.phraseEn}>{c.word}</Text>
+                  {c.ipa && <Text style={[styles.body, { color: '#8f4f1f', marginLeft: 6, fontSize: 13 }]}>{c.ipa}</Text>}
+                </Row>
                 <Text style={styles.body}>{c.zh} · {t("cards.source", { context: c.context })}</Text>
               </View>
-              <Pressable onPress={() => { Speech.stop(); Speech.speak(c.word, { language: "en-US", rate: 0.8 }); }}>
+              <Pressable onPress={() => { Speech.stop(); Speech.speak(c.word, { language: accent, rate: speechRate }); }}>
                 <Text style={styles.link}>🔊 {t("cards.pronounce")}</Text>
               </Pressable>
             </View>
@@ -515,7 +666,7 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
           {plan === "free" ? (
             <>
               <Button label={t("plans.rewardButton")} onPress={rewardAd} />
-              <AdMobBannerCard />
+              {screen === 'plans' && <AdMobBannerCard />}
               <Text style={styles.helper}>{t("plans.rewardHint")}</Text>
             </>
           ) : null}
@@ -526,14 +677,44 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
     );
   }
 
+  function renderPersonalized() {
+    return (
+      <Section title="🎯 個人化課程" subtitle="根據您的對話紀錄自動生成的專屬練習">
+        <Card title="自動產出建議" sub="這裡會收錄您在自由對話中表現優異或需要加強的句型">
+           {personalizedLessons.length === 0 ? <Text style={styles.body}>目前還沒有個人化推薦，去 Free Talk 聊聊吧！</Text> : null}
+           {personalizedLessons.map((p, idx) => (
+             <Phrase key={idx} en={p.en} zh={p.zh} onPress={() => Speech.speak(p.en, { language: accent, rate: speechRate })} showZh={showHints} />
+           ))}
+        </Card>
+      </Section>
+    );
+  }
+
   function renderSettings() {
     return (
       <Section title={t("settings.title")} subtitle={t("settings.subtitle")}>
+        <Card title="🎙️ 語音語系與偏好">
+           <Text style={styles.label}>發音口音 (Accent)</Text>
+           <ChipRow values={["en-US", "en-GB", "en-AU", "en-IN"]} active={accent} onSelect={setAccent} />
+           <Text style={[styles.label, {marginTop: 10}]}>語速 (Speed): {speechRate}</Text>
+           <ChipRow values={["0.7", "0.9", "1.1", "1.3"]} active={speechRate.toString()} onSelect={(v) => setSpeechRate(parseFloat(v))} />
+           <Row style={{ marginTop: 10 }}>
+              <Text style={styles.label}>顯示翻譯與提示 (Hints)</Text>
+              <Pressable onPress={() => setShowHints(!showHints)}>
+                <Text style={styles.link}>{showHints ? "✅ 已開啟" : "❌ 已關閉"}</Text>
+              </Pressable>
+           </Row>
+        </Card>
         <Card title="雲端帳號設定 (Cloud Account)">
           {authUser ? (
             <View>
               <Text style={styles.body}>已登入雲端帳號：{authUser.email}</Text>
-              <GhostButton label="登出 (Logout)" onPress={handleLogout} />
+              {!authUser.providerData.some(p => p.providerId === 'google.com') && (
+                <View style={{ marginTop: 8 }}>
+                   <GhostButton label="🤝 綁定 Google 帳戶" onPress={handleLinkGoogle} style={{ borderColor: '#4285F4' }} />
+                </View>
+              )}
+              <GhostButton label="登出 (Logout)" onPress={handleLogout} style={{ marginTop: 10 }} />
             </View>
           ) : (
             <View>
@@ -543,6 +724,9 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
                 <View style={{ flex: 1 }}><Button label="登入 (Login)" onPress={handleLogin} /></View>
                 <View style={{ flex: 1 }}><GhostButton label="註冊帳號 (Register)" onPress={handleRegister} /></View>
               </Row>
+              <View style={{ marginTop: 10 }}>
+                <Button label="使用 Google 登入" onPress={handleGoogleLogin} style={{ backgroundColor: '#4285F4' }} />
+              </View>
             </View>
           )}
         </Card>
@@ -552,6 +736,15 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
           <Input label={t("settings.level")} value={level} onChangeText={setLevel} placeholder={t("settings.level")} />
           <Input label={t("settings.geminiKey")} value={geminiKey} onChangeText={setGeminiKey} placeholder="EXPO_PUBLIC_GEMINI_API_KEY" secure />
           <Text style={styles.helper}>{t("settings.helper")}</Text>
+          <View style={{ marginTop: 10 }}>
+             <GhostButton label="⚠️ 設定為全域預設 Key (Admin Only)" onPress={async () => {
+                const confirmed = confirm("確定要將目前的 Key 存入 Firebase 'system' 集合嗎？這會變成所有新使用者的預設 Key。");
+                if (confirmed) {
+                   const success = await setupSystemGeminiKey(geminiKey);
+                   alert(success ? "已成功建立 System Collection 並存入 Key！" : "設定失敗，請檢查權限。");
+                }
+             }} />
+          </View>
         </Card>
         <Card title={t("settings.memory")} sub={t("settings.memorySub")}>
           <Text style={styles.helper}>{t("settings.memoryCount", { count: history.length })}</Text>
@@ -575,6 +768,7 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
       : screen === "review" ? renderReview()
       : screen === "cards" ? renderCards()
       : screen === "plans" ? renderPlans()
+      : screen === "personalized" ? renderPersonalized()
       : renderSettings();
 
   return (
@@ -598,6 +792,11 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
                   <Text style={[styles.navText, screen === id && styles.navTextActive]}>{label}</Text>
                 </Pressable>
               ))}
+              {personalizedLessons.length > 0 && (
+                <Pressable style={[styles.navChip, screen === 'personalized' && styles.navChipActive, {borderColor: '#ff9800'}]} onPress={() => setScreen('personalized')}>
+                  <Text style={[styles.navText, screen === 'personalized' && styles.navTextActive]}>⭐ 個人化</Text>
+                </Pressable>
+              )}
             </ScrollView>
           ) : null}
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -614,7 +813,7 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
               <Text style={styles.adSubtitle}>升級 Premium 方案可跳過所有廣告。</Text>
               
               <View style={styles.adSlot}>
-                <AdMobBannerCard slot="" />
+                {plan === "free" && <AdMobBannerCard slot="" />}
               </View>
 
               {adCountdown > 0 ? (
@@ -635,176 +834,4 @@ Return ONLY JSON format: {"review": "Your overall review and corrections in Trad
   );
 }
 
-function Section({ title, subtitle, children }) {
-  return (
-    <View style={styles.section}>
-      <LinearGradient colors={["#15344f", "#275c74"]} style={styles.hero}>
-        <Text style={styles.heroTitle}>{title}</Text>
-        <Text style={styles.heroSub}>{subtitle}</Text>
-      </LinearGradient>
-      {children}
-    </View>
-  );
-}
 
-function Card({ title, sub, children }) {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={styles.cardSub}>{sub}</Text>
-      {children}
-    </View>
-  );
-}
-
-function Row({ children }) {
-  return <View style={styles.row}>{children}</View>;
-}
-
-function Input({ label, value, onChangeText, placeholder, secure, multiline }) {
-  return (
-    <View style={styles.inputWrap}>
-      <Text style={styles.label}>{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#8f8577"
-        secureTextEntry={secure}
-        multiline={multiline}
-        numberOfLines={multiline ? 4 : 1}
-        style={[styles.input, multiline && styles.area]}
-      />
-    </View>
-  );
-}
-
-function Button({ label, onPress }) {
-  return <Pressable style={styles.btn} onPress={onPress}><Text style={styles.btnText}>{label}</Text></Pressable>;
-}
-
-function GhostButton({ label, onPress }) {
-  return <Pressable style={styles.ghost} onPress={onPress}><Text style={styles.ghostText}>{label}</Text></Pressable>;
-}
-
-function Stat({ title, value, text }) {
-  return (
-    <View style={styles.stat}>
-      <Text style={styles.statTitle}>{title}</Text>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.body}>{text}</Text>
-    </View>
-  );
-}
-
-function ChipRow({ values, active, onSelect }) {
-  return (
-    <View style={styles.chips}>
-      {values.map((value) => (
-        <Pressable key={value} style={[styles.chip, active === value && styles.chipActive]} onPress={() => onSelect?.(value)}>
-          <Text style={[styles.chipText, active === value && styles.chipTextActive]}>{value}</Text>
-        </Pressable>
-      ))}
-    </View>
-  );
-}
-
-function Phrase({ en, zh, onPress }) {
-  return (
-    <Pressable style={styles.phrase} onPress={onPress}>
-      <Text style={styles.phraseEn}>{en}</Text>
-      <Text style={styles.body}>{zh}</Text>
-    </Pressable>
-  );
-}
-
-function History({ title, meta, openLabel }) {
-  return (
-    <View style={styles.history}>
-      <View style={styles.flex}>
-        <Text style={styles.phraseEn}>{title}</Text>
-        <Text style={styles.body}>{meta}</Text>
-      </View>
-      <Text style={styles.link}>{openLabel}</Text>
-    </View>
-  );
-}
-
-function Plan({ item, active, onPress }) {
-  return (
-    <Pressable style={[styles.plan, active && styles.planActive]} onPress={onPress}>
-      <Text style={[styles.planName, active && styles.planNameActive]}>{item.name}</Text>
-      <Text style={[styles.planPrice, active && styles.planPriceActive]}>{item.price}</Text>
-      {item.features.map((feature) => <Text key={feature} style={[styles.body, active && styles.planBodyActive]}>- {feature}</Text>)}
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  root: { flex: 1 },
-  shell: { flex: 1, paddingHorizontal: 18, paddingTop: 12 },
-  top: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
-  brand: { color: "#32453f", fontSize: 13, fontWeight: "800", letterSpacing: 1.2 },
-  sub: { color: "#68736e", fontSize: 12, marginTop: 4, maxWidth: 320 },
-  pill: { backgroundColor: "rgba(255,255,255,0.7)", borderColor: "rgba(50,69,63,0.1)", borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
-  pillText: { color: "#32453f", fontSize: 12, fontWeight: "700" },
-  nav: { flexGrow: 0, marginBottom: 16 },
-  navContent: { gap: 10, paddingRight: 12 },
-  navChip: { backgroundColor: "rgba(255,251,245,0.78)", borderColor: "rgba(49,69,63,0.08)", borderWidth: 1, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 10 },
-  navChipActive: { backgroundColor: "#214e63" },
-  navText: { color: "#546560", fontSize: 13, fontWeight: "700" },
-  navTextActive: { color: "#fff" },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 36 },
-  section: { gap: 16 },
-  hero: { borderRadius: 28, padding: 24 },
-  heroTitle: { color: "#f8fbfd", fontSize: 30, fontWeight: "800", lineHeight: 36, marginBottom: 12 },
-  heroSub: { color: "#d7e7ee", fontSize: 15, lineHeight: 23 },
-  card: { backgroundColor: "rgba(255,250,244,0.92)", borderColor: "rgba(75,70,58,0.08)", borderWidth: 1, borderRadius: 24, padding: 18, gap: 14 },
-  cardTitle: { color: "#1f1d1a", fontSize: 22, fontWeight: "800" },
-  cardSub: { color: "#726a60", fontSize: 13, lineHeight: 20 },
-  row: { flexDirection: "row", gap: 10 },
-  stat: { backgroundColor: "rgba(255,255,255,0.72)", borderColor: "rgba(35,41,36,0.08)", borderWidth: 1, borderRadius: 22, flexGrow: 1, minWidth: 150, padding: 16 },
-  statTitle: { color: "#5d6a67", fontSize: 12, fontWeight: "700", marginBottom: 10 },
-  statValue: { color: "#1f1d1a", fontSize: 24, fontWeight: "800", marginBottom: 8 },
-  inputWrap: { gap: 8 },
-  label: { color: "#3d3226", fontSize: 14, fontWeight: "700" },
-  input: { backgroundColor: "#fffaf2", borderColor: "#d9c9b6", borderWidth: 1, borderRadius: 16, color: "#241b14", fontSize: 16, paddingHorizontal: 16, paddingVertical: 15 },
-  area: { minHeight: 112, textAlignVertical: "top" },
-  btn: { alignItems: "center", backgroundColor: "#1f5eff", borderRadius: 16, paddingVertical: 16 },
-  btnText: { color: "#fff", fontSize: 16, fontWeight: "800" },
-  ghost: { alignItems: "center", backgroundColor: "#fff", borderColor: "#d8cab8", borderWidth: 1, borderRadius: 16, flex: 1, paddingVertical: 16 },
-  ghostText: { color: "#2b221c", fontSize: 15, fontWeight: "700" },
-  body: { color: "#6f665a", fontSize: 14, lineHeight: 22 },
-  helper: { color: "#6f665a", fontSize: 13, lineHeight: 20 },
-  error: { color: "#b42318", fontSize: 13, fontWeight: "700" },
-  success: { color: "#16794b", fontSize: 13, fontWeight: "700" },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  chip: { backgroundColor: "#eef5f6", borderRadius: 999, paddingHorizontal: 12, paddingVertical: 10 },
-  chipActive: { backgroundColor: "#214e63" },
-  chipText: { color: "#214e63", fontSize: 13, fontWeight: "700" },
-  chipTextActive: { color: "#fff" },
-  phrase: { backgroundColor: "#fffdf8", borderColor: "rgba(61,52,38,0.08)", borderWidth: 1, borderRadius: 18, padding: 14 },
-  phraseEn: { color: "#1f1d1a", fontSize: 15, fontWeight: "800", marginBottom: 6 },
-  replyBox: { backgroundColor: "#edf4f6", borderRadius: 18, padding: 14, gap: 6 },
-  replyLabel: { color: "#5d6a67", fontSize: 12, fontWeight: "800" },
-  history: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", borderBottomColor: "rgba(71,61,53,0.08)", borderBottomWidth: 1, paddingVertical: 12, gap: 10 },
-  link: { color: "#8f4f1f", fontSize: 14, fontWeight: "700" },
-  flex: { flex: 1 },
-  plan: { backgroundColor: "rgba(255,250,244,0.92)", borderColor: "rgba(75,70,58,0.08)", borderWidth: 1, borderRadius: 24, padding: 18, gap: 8 },
-  planActive: { backgroundColor: "#214e63", borderColor: "#214e63" },
-  planName: { color: "#1f1d1a", fontSize: 20, fontWeight: "800" },
-  planNameActive: { color: "#fff" },
-  planPrice: { color: "#8f4f1f", fontSize: 28, fontWeight: "800" },
-  planPriceActive: { color: "#ffe2b8" },
-  planBodyActive: { color: "#d9ecf3" },
-  videoBadge: { alignSelf: "flex-start", backgroundColor: "#f2d2aa", color: "#9b5d25", borderRadius: 999, overflow: "hidden", paddingHorizontal: 12, paddingVertical: 8, fontSize: 12, fontWeight: "800" },
-  // 廣告插頁樣式
-  adOverlay: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.75)", justifyContent: "center", alignItems: "center", zIndex: 9999 },
-  adModal: { backgroundColor: "#fff", borderRadius: 28, padding: 28, width: "90%", maxWidth: 440, gap: 14, alignItems: "center" },
-  adTitle: { fontSize: 22, fontWeight: "800", color: "#1f1d1a" },
-  adSubtitle: { fontSize: 14, color: "#6f665a", textAlign: "center", lineHeight: 22 },
-  adSlot: { width: "100%", minHeight: 120, borderRadius: 18, overflow: "hidden", marginVertical: 8 },
-  adCountdownBox: { backgroundColor: "#eef5f6", borderRadius: 16, paddingVertical: 16, paddingHorizontal: 24 },
-  adCountdownText: { fontSize: 18, fontWeight: "800", color: "#214e63", textAlign: "center" },
-});

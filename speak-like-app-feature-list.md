@@ -144,13 +144,12 @@
 - [ ] App Store / Google Play 訂閱。
 - [ ] 官網方案說明頁。
 - [ ] 試用轉付費流程。
-- [ ] 方案升級與續訂管理。
-- [x] 免費方案權限控管。
-- [x] AdMob 廣告版位管理：
-  - [ ] App open ad
-  - [x] Banner ad
-  - [ ] Interstitial ad
-  - [x] Rewarded ad
+- ### 技術架構 (Technical Architecture)
+- **Frontend**: React Native (Expo) - 支持 Android/iOS/Web
+- **Backend (Auth/DB)**: Firebase (Authentication, Firestore Lite)
+- **Backend (AI Proxy)**: Vercel Serverless Functions Node.js (安全性：隱藏 Gemini API Key)
+- **Deployment**: Frontend (GitHub Pages), Backend (Vercel)
+- **AI Engine**: Google Gemini 2.5 Flash
 - [ ] 廣告展示頻率與冷卻時間控管。
 - [x] 付費用戶免廣告判斷。
 
@@ -164,14 +163,16 @@
 
 ## P0：第一版必做
 
-- [ ] 使用者註冊登入。
+- [x] 使用者註冊登入。
+- [x] 串接 Google 帳號與 Google 登入。
+- [x] 會員資料同步至 Firebase。
 - [x] 程度分級測驗或初始問卷。
 - [x] 首頁課程路徑展示。
 - [x] 單元播放頁。
 - [ ] 教學影片播放。
 - [x] 情境式口說練習。
-- [ ] AI 語音對話。
-- [ ] 語音辨識與文字轉寫。
+- [x] AI 語音對話。
+- [x] 語音辨識與文字轉寫。
 - [x] 發音與基礎文法即時回饋。
 - [x] 對話結束後學習摘要。
 - [ ] 單元完成狀態與進度追蹤。
@@ -185,11 +186,10 @@
 - [x] Free talk 模式。
 - [ ] 從自由對話自動生成延伸課程。
 - [x] 多主題情境庫。
-- [x] 對話回顧頁。
-- [ ] 口音切換。
-- [ ] 語速切換。
-- [ ] 提示模式開關。
-- [ ] 更細緻的錯誤分類與說明。
+- [x] 串接 Gemini 2.5 API。
+- [x] 個人語速設定。
+- [x] 英美發音設定。
+- [x] 字首/字根學習單元（範例）。
 - [x] AdMob 版位策略與實作。
 - [ ] 廣告免打擾規則。
   - [ ] 練習進行中不插廣告
