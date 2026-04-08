@@ -241,7 +241,7 @@ Return ONLY JSON format: {"reply": "your conversation response", "zh": "繁體�
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(`${data.error || "未知錯誤"} ${data.debug || ""}`);
+      if (!res.ok) throw new Error(data.error || "連線伺服器錯誤");
 
       const parsed = JSON.parse(data.text.replace(/```json|```/g, ""));
       const nextReply = parsed.reply || "Thinking...";
@@ -292,7 +292,7 @@ Return ONLY JSON format:
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(`${data.error || "未知錯誤"} ${data.debug || ""}`);
+      if (!res.ok) throw new Error(data.error || "連線伺服器錯誤");
 
       const parsed = JSON.parse(data.text.replace(/```json|```/g, ""));
       

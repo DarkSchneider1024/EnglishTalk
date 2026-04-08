@@ -25,10 +25,8 @@ module.exports = async (req, res) => {
   const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    const keys = Object.keys(process.env).filter(k => !k.includes('SECRET') && !k.includes('PASSWORD'));
     return res.status(500).json({ 
-      error: "伺服器未設定 GEMINI_API_KEY",
-      debug: `目前可用的變數 Key: ${keys.join(', ')} (請檢查 Vercel 官網 Settings 是否正確)`
+      error: "伺服器未設定 GEMINI_API_KEY"
     });
   }
 
