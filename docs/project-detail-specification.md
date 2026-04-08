@@ -61,8 +61,10 @@
     *   安全規則：限定 `request.auth.uid == resource.id` 確保資料隱私。
 
 ### 3.3 Google AdMob (廣告)
-*   **BannerAd**：使用 `ca-app-pub-3940256099942544/6300978111` (測試代碼)。
-*   **RewardedAd**：當點數耗盡時，賦予 `setFreeCredits(3)`。
+*   **廣告觸發規則**：
+    *   **中間不攔截**：使用者在對話過程中不會被強迫看廣告。
+    *   **條件式結算廣告**：在 `getFeedback` 時，若免費用戶的對話長度 **超過 3 句**，則會強制進入 10 秒廣告倒數後才展示回饋內容。
+    *   **互動點數**：基本的 BannerAd 在頁面底部展示。
 
 ### 3.4 Expo Speech (TTS)
 *   **功能**：自動偵測對話回傳的 `reply`，根據用戶設定的 `accent` (en-US / en-GB) 進行發音。
