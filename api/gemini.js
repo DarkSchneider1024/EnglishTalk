@@ -31,15 +31,19 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
+    const payload = {
+      contents: history && history.length > 0 
+        ? [...history, { role: "user", parts: [{ text: prompt }] }] 
+        : [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: generationConfig || { temperature: 0.8, responseMimeType: "application/json" }
+    };
+
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: history || [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: generationConfig || { temperature: 0.8, responseMimeType: "application/json" }
-      })
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
