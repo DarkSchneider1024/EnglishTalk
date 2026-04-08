@@ -241,14 +241,14 @@ Return ONLY JSON format: {"reply": "your conversation response", "zh": "繁體�
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: userInput,
-          history: [...historyItems, { role: "user", parts: [{ text: promptText }] }, { role: "user", parts: [{ text: userInput }] }],
+          prompt: `${promptText}\n\nUser: ${userInput}`,
+          history: historyItems,
           generationConfig: { temperature: 0.8, responseMimeType: "application/json" }
         })
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "連線伺服器錯誤");
+      if (!res.ok) throw new Error(data.error || "伺服器回傳錯誤");
 
       const parsed = JSON.parse(data.text.replace(/```json|```/g, ""));
       const nextReply = parsed.reply || "Thinking...";
@@ -257,7 +257,8 @@ Return ONLY JSON format: {"reply": "your conversation response", "zh": "繁體�
       Speech.speak(nextReply, { language: accent, rate: speechRate });
       setMessage("");
     } catch(e) {
-      setError("連線伺服器錯誤：" + e.message);
+      console.error(e);
+      setError("連線伺服器錯誤：" + (e.message || "未知伺服器異常"));
     }
     setLoading(false);
   }
