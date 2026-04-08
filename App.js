@@ -124,7 +124,7 @@ export default function App() {
           setName(profile.name || "Sharon");
           setGoal(profile.goal || dict.welcome.defaultGoal);
           setLevel(profile.level || dict.welcome.defaultLevel);
-          setPlan(profile.plan || "premium");
+          setPlan(profile.plan || "free");
           setLocale(profile.locale || "zh");
           if (profile.geminiKey !== undefined && profile.geminiKey.trim() !== "") {
             setGeminiKey(profile.geminiKey);
@@ -290,8 +290,8 @@ Return ONLY JSON format:
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: "Provide Feedback",
-          history: [...historyItems, { role: "user", parts: [{ text: promptText }] }],
+          prompt: promptText, // 將指令直接放入主 Prompt
+          history: historyItems,
           generationConfig: { temperature: 0.7, responseMimeType: "application/json" }
         })
       });
@@ -299,10 +299,12 @@ Return ONLY JSON format:
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "連線伺服器錯誤");
 
-      const parsed = JSON.parse(data.text.replace(/```json|```/g, ""));
+      const jsonString = data.text.match(/\{[\s\S]*\}/)?.[0] || data.text;
+      const parsed = JSON.parse(jsonString.replace(/```json|```/g, ""));
       
-      // 廣告規則：只有免費用戶且對話超過 3 句（包含 AI 的回話）才需要看廣告
-      const shouldShowAd = (plan !== "premium" && plan !== "plus") && currentChat.length > 3;
+      // 強制檢查：對話總數是否大於 3
+      const isFreeUser = (plan !== "premium" && plan !== "plus");
+      const shouldShowAd = isFreeUser && currentChat.length > 3;
 
       if (shouldShowAd) {
         setPendingFeedback(parsed);
@@ -312,9 +314,10 @@ Return ONLY JSON format:
         setFeedback(parsed);
       }
     } catch(e) {
-      setError("AI 導師連線失敗：" + e.message);
+      setError("結算分析失敗：" + e.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   // 廣告倒數計時器
