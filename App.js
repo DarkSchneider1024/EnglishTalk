@@ -181,6 +181,19 @@ export default function App() {
     getLearnerId().then(setLearnerId);
   }, []);
 
+  // 廣告倒數計時器邏輯
+  useEffect(() => {
+    let timer;
+    if (showingAd && adCountdown > 0) {
+      timer = setInterval(() => {
+        setAdCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (adCountdown === 0) {
+      clearInterval(timer);
+    }
+    return () => clearInterval(timer);
+  }, [showingAd, adCountdown]);
+
   useEffect(() => {
     if (!profileLoadedRef.current || booting) return;
     const today = new Date().toDateString();
