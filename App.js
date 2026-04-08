@@ -276,14 +276,17 @@ Return ONLY JSON format: {"reply": "your conversation response", "zh": "繁體�
         parts: [{ text: c.text }]
       }));
 
-      const promptText = `You are an expert English tutor reviewing a '${topic}' scenario conversation.
-Review the Learner's sentences.
+      const promptText = `Analyze this conversation between user (learner) and model (AI). 
+EVEN IF IT IS SHORT (like "hi"), please evaluate the learner's language use. 
+Conversation:
+${currentChat.map(m => `${m.role}: ${m.text}`).join("\n")}
+
 Return ONLY JSON format: 
 {
-  "review": "Overall review in Traditional Chinese",
-  "categories": { "grammar": [], "vocabulary": [], "naturalness": [] },
-  "vocab": [{"word": "word", "ipa": "/phonetic_symbol/", "zh": "繁體中文"}],
-  "extendedPhrases": [{"en": "useful phrase", "zh": "翻譯"}]
+  "review": "A friendly summary in Traditional Chinese. Mention the learner's word Choice.",
+  "categories": { "grammar": ["tip"], "vocabulary": ["tip"], "naturalness": ["tip"] },
+  "vocab": [{"word": "word", "ipa": "/ipa/", "zh": "中文"}],
+  "extendedPhrases": [{"en": "phrase", "zh": "翻譯"}]
 }`;
 
       const res = await fetch(proxyUrl, {
