@@ -14,9 +14,11 @@ function createId(prefix) {
 
 /**
  * 取得當前學習者的 ID
- * 如果已登入 Firebase 則回傳 UID，否則回傳裝置生成的 ID
+ * 如果傳入傳入 id 則優先使用，否則檢查 Firebase 登入狀態，最後使用裝置 ID
  */
-export async function getLearnerId() {
+export async function getLearnerId(providedId) {
+  if (providedId) return providedId;
+  
   try {
     const app = getFirebaseApp();
     if (app) {
@@ -35,26 +37,25 @@ export async function getLearnerId() {
 /**
  * 內部使用的儲存金鑰生成器，確保不同帳號資料隔離
  */
-async function getUserKey(baseKey) {
-  const learnerId = await getLearnerId();
+async function getUserKey(baseKey, providedId) {
+  const learnerId = await getLearnerId(providedId);
   return `${baseKey}.${learnerId}`;
 }
 
-export async function loadProfile() {
-  const key = await getUserKey(PROFILE_KEY);
+export async function loadProfile(providedId) {
+  const key = await getUserKey(PROFILE_KEY, providedId);
   const raw = await AsyncStorage.getItem(key);
   return raw ? JSON.parse(raw) : null;
 }
 
-export async function saveProfile(profile) {
+export async function saveProfile(profile, providedId) {
   try {
-    const learnerId = await getLearnerId();
-    const key = await getUserKey(PROFILE_KEY);
+    const learnerId = await getLearnerId(providedId);
+    const key = await getUserKey(PROFILE_KEY, learnerId);
     await AsyncStorage.setItem(key, JSON.stringify(profile));
     
     const _db = getDb();
     if (_db) {
-      // 安全保護：在推送到雲端前，拔除個人的 Gemini API Key
       const cloudProfile = { ...profile, learnerId, updatedAt: Date.now() };
       delete cloudProfile.geminiKey;
       await setDoc(doc(_db, `learners`, learnerId), cloudProfile, { merge: true });
@@ -65,9 +66,9 @@ export async function saveProfile(profile) {
   return profile;
 }
 
-export async function loadMemories() {
-  const learnerId = await getLearnerId();
-  const key = await getUserKey(MEMORY_KEY);
+export async function loadMemories(providedId) {
+  const learnerId = await getLearnerId(providedId);
+  const key = await getUserKey(MEMORY_KEY, learnerId);
   const raw = await AsyncStorage.getItem(key);
   let localItems = raw ? JSON.parse(raw) : [];
   const db = getDb();
@@ -84,7 +85,7 @@ export async function loadMemories() {
          // 如果遠端沒資料且本地也沒資料，嘗試同步 Remote Profile 以免遺漏
          const remoteProfile = await getDoc(doc(db, "learners", learnerId));
          if (remoteProfile.exists()) {
-           const profileKey = await getUserKey(PROFILE_KEY);
+           const profileKey = await getUserKey(PROFILE_KEY, learnerId);
            await AsyncStorage.setItem(profileKey, JSON.stringify(remoteProfile.data()));
          }
       }
@@ -96,11 +97,11 @@ export async function loadMemories() {
   return localItems;
 }
 
-export async function saveMemory(memory) {
-  const learnerId = await getLearnerId();
-  const key = await getUserKey(MEMORY_KEY);
+export async function saveMemory(memory, providedId) {
+  const learnerId = await getLearnerId(providedId);
+  const key = await getUserKey(MEMORY_KEY, learnerId);
   const entry = { id: createId("memory"), learnerId, ...memory, updatedAt: Date.now() };
-  const current = await loadMemories();
+  const current = await loadMemories(learnerId);
   const next = [entry, ...current].slice(0, 50);
   await AsyncStorage.setItem(key, JSON.stringify(next));
   const db = getDb();
@@ -114,9 +115,9 @@ export async function saveMemory(memory) {
   return next;
 }
 
-export async function loadCards() {
-  const learnerId = await getLearnerId();
-  const key = await getUserKey(CARDS_KEY);
+export async function loadCards(providedId) {
+  const learnerId = await getLearnerId(providedId);
+  const key = await getUserKey(CARDS_KEY, learnerId);
   const raw = await AsyncStorage.getItem(key);
   let localItems = raw ? JSON.parse(raw) : [];
   const db = getDb();
@@ -137,11 +138,11 @@ export async function loadCards() {
   return localItems;
 }
 
-export async function saveCard(card) {
-  const learnerId = await getLearnerId();
-  const key = await getUserKey(CARDS_KEY);
+export async function saveCard(card, providedId) {
+  const learnerId = await getLearnerId(providedId);
+  const key = await getUserKey(CARDS_KEY, learnerId);
   const entry = { id: createId("card"), learnerId, ...card, updatedAt: Date.now() };
-  const current = await loadCards();
+  const current = await loadCards(learnerId);
   const next = [entry, ...current].slice(0, 100);
   await AsyncStorage.setItem(key, JSON.stringify(next));
   const db = getDb();
@@ -154,6 +155,7 @@ export async function saveCard(card) {
   }
   return next;
 }
+
 
 
 export async function loadSystemGeminiKey() {

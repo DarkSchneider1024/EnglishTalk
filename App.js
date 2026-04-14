@@ -118,7 +118,11 @@ export default function App() {
     async function loadData() {
       if (!learnerId) return;
       try {
-        const [profile, memories, savedCards] = await Promise.all([loadProfile(), loadMemories(), loadCards()]);
+        const [profile, memories, savedCards] = await Promise.all([
+          loadProfile(learnerId), 
+          loadMemories(learnerId), 
+          loadCards(learnerId)
+        ]);
         if (!alive) return;
         
         if (profile) {
@@ -201,7 +205,7 @@ export default function App() {
     saveProfile({ 
       name, goal, level, plan, locale, geminiKey, streak, freeCredits, weeklyGoal, lastActiveDate: today,
       accent, speechRate, showHints, completedLessons, personalizedLessons
-    }).catch((e) => setError(e.message));
+    }, learnerId).catch((e) => setError(e.message));
   }, [name, goal, level, plan, locale, geminiKey, streak, freeCredits, weeklyGoal, booting, accent, speechRate, showHints, completedLessons, personalizedLessons]);
 
   function buildMemoryPrompt() {
@@ -343,7 +347,7 @@ Return ONLY JSON format:
       const summaryText = `${topic} 對話紀錄：\n` + currentChat.map(c => `${c.role==='user'?'我':'對方'}: ${c.text}`).join("\n") + "\n\n--- AI 導師點評 ---\n" + feedback?.review;
       const nextHistory = await saveMemory({
         screen, topic, message: "Chat Session", reply: feedback?.review || "N/A", profile: { name, goal, level, plan, locale, geminiKey }, summary: summaryText
-      });
+      }, learnerId);
       setHistory(nextHistory);
       
       // 保存延伸課程
@@ -397,7 +401,7 @@ Return ONLY JSON format:
 
   async function handleSaveCard(word, zh, ipa) {
     try {
-      const nextCards = await saveCard({ word, zh, ipa, context: topic });
+      const nextCards = await saveCard({ word, zh, ipa, context: topic }, learnerId);
       setCards(nextCards);
       setMemoryNotice(t("practice.savedCard", { word }));
     } catch(e) {
@@ -821,6 +825,7 @@ Return ONLY JSON format:
           </View>
         </Card>
         <Card title={t("settings.memory")} sub={t("settings.memorySub")}>
+          <Text style={styles.body}>當前用戶 ID: {learnerId}</Text>
           <Text style={styles.helper}>{t("settings.memoryCount", { count: history.length })}</Text>
         </Card>
         <Card title={t("settings.language")} sub={t("settings.languageSub")}>
