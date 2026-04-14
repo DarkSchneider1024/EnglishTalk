@@ -47,7 +47,7 @@
 ## 3. 外掛服務與 API 詳細規格
 
 ### 3.1 Google Gemini AI (`api/gemini.js`)
-*   **服務商**：Google AI Studio (Gemini 2.5 Flash)。
+*   **服務商**：Google AI Studio (Gemini 1.5 Flash)。
 *   **API 選項**：
     *   `temperature: 0.8`: 確保對話自然且有創意。
     *   `responseMimeType: application/json`: 強制 AI 回傳結構化數據，避免解析失敗。

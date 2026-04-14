@@ -149,7 +149,7 @@
 - **Backend (Auth/DB)**: Firebase (Authentication, Firestore Lite)
 - **Backend (AI Proxy)**: Vercel Serverless Functions Node.js (安全性：隱藏 Gemini API Key)
 - **Deployment**: Frontend (GitHub Pages), Backend (Vercel)
-- **AI Engine**: Google Gemini 2.5 Flash
+- **AI Engine**: Google Gemini 1.5 Flash
 - [ ] 廣告展示頻率與冷卻時間控管。
 - [x] 付費用戶免廣告判斷。
 
@@ -186,7 +186,7 @@
 - [x] Free talk 模式。
 - [ ] 從自由對話自動生成延伸課程。
 - [x] 多主題情境庫。
-- [x] 串接 Gemini 2.5 API。
+- [x] 串接 Gemini 1.5 API。
 - [x] 個人語速設定。
 - [x] 英美發音設定。
 - [x] 字首/字根學習單元（範例）。

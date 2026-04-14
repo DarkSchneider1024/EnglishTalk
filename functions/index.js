@@ -25,7 +25,7 @@ exports.askGemini = onCall({ secrets: [GEMINI_API_KEY], cors: true }, async (req
   logger.info(`使用者 ${request.auth.token.email} 正在呼叫 Gemini...`);
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     
     // 將請求轉發給 Google Gemini
     const response = await fetch(url, {
