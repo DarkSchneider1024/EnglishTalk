@@ -485,6 +485,18 @@ Return ONLY JSON format:
     setEmail("");
     setPassword("");
     setAuthUser(null);
+    
+    // 重置學習相關狀態，防止下一個帳號看到舊資料
+    setName("Sharon");
+    setGoal("");
+    setLevel("");
+    setHistory([]);
+    setCards([]);
+    setPersonalizedLessons([]);
+    setCompletedLessons([]);
+    setStreak(1);
+    setFreeCredits(3);
+    setLearnerId(""); // 觸發重新抓取 Device ID
   }
 
   function renderWelcome() {

@@ -12,12 +12,19 @@ function createId(prefix) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+/**
+ * 取得當前學習者的 ID
+ * 如果已登入 Firebase 則回傳 UID，否則回傳裝置生成的 ID
+ */
 export async function getLearnerId() {
-  const app = getFirebaseApp();
-  if (app) {
-    const auth = getAuth(app);
-    if (auth.currentUser) return auth.currentUser.uid;
-  }
+  try {
+    const app = getFirebaseApp();
+    if (app) {
+      const auth = getAuth(app);
+      if (auth.currentUser) return auth.currentUser.uid;
+    }
+  } catch (e) {}
+  
   const existing = await AsyncStorage.getItem(DEVICE_ID_KEY);
   if (existing) return existing;
   const next = createId("learner");
@@ -25,21 +32,31 @@ export async function getLearnerId() {
   return next;
 }
 
+/**
+ * 內部使用的儲存金鑰生成器，確保不同帳號資料隔離
+ */
+async function getUserKey(baseKey) {
+  const learnerId = await getLearnerId();
+  return `${baseKey}.${learnerId}`;
+}
+
 export async function loadProfile() {
-  const raw = await AsyncStorage.getItem(PROFILE_KEY);
+  const key = await getUserKey(PROFILE_KEY);
+  const raw = await AsyncStorage.getItem(key);
   return raw ? JSON.parse(raw) : null;
 }
 
 export async function saveProfile(profile) {
   try {
-    await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    const learnerId = await getLearnerId();
+    const key = await getUserKey(PROFILE_KEY);
+    await AsyncStorage.setItem(key, JSON.stringify(profile));
+    
     const _db = getDb();
     if (_db) {
-      const learnerId = await getLearnerId();
-      // ⚠️ 安全保護：在推送到雲端前，拔除個人的 Gemini API Key，確保密碼絕不上傳到資料庫
+      // 安全保護：在推送到雲端前，拔除個人的 Gemini API Key
       const cloudProfile = { ...profile, learnerId, updatedAt: Date.now() };
       delete cloudProfile.geminiKey;
-      
       await setDoc(doc(_db, `learners`, learnerId), cloudProfile, { merge: true });
     }
   } catch (err) {
@@ -50,7 +67,8 @@ export async function saveProfile(profile) {
 
 export async function loadMemories() {
   const learnerId = await getLearnerId();
-  const raw = await AsyncStorage.getItem(MEMORY_KEY);
+  const key = await getUserKey(MEMORY_KEY);
+  const raw = await AsyncStorage.getItem(key);
   let localItems = raw ? JSON.parse(raw) : [];
   const db = getDb();
 
@@ -58,14 +76,17 @@ export async function loadMemories() {
     try {
       const snapshot = await getDocs(query(collection(db, "learners", learnerId, "memories"), orderBy("updatedAt", "desc"), limit(20)));
       const remoteItems = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
+      
       if (remoteItems.length > 0) {
         localItems = remoteItems;
-        await AsyncStorage.setItem(MEMORY_KEY, JSON.stringify(remoteItems));
-      } else {
-        const remoteProfile = await getDoc(doc(db, "learners", learnerId));
-        if (remoteProfile.exists()) {
-          await AsyncStorage.setItem(PROFILE_KEY, JSON.stringify(remoteProfile.data()));
-        }
+        await AsyncStorage.setItem(key, JSON.stringify(remoteItems));
+      } else if (localItems.length === 0) {
+         // 如果遠端沒資料且本地也沒資料，嘗試同步 Remote Profile 以免遺漏
+         const remoteProfile = await getDoc(doc(db, "learners", learnerId));
+         if (remoteProfile.exists()) {
+           const profileKey = await getUserKey(PROFILE_KEY);
+           await AsyncStorage.setItem(profileKey, JSON.stringify(remoteProfile.data()));
+         }
       }
     } catch (err) {
       console.warn("Firebase Memory Sync Error:", err.message);
@@ -77,10 +98,11 @@ export async function loadMemories() {
 
 export async function saveMemory(memory) {
   const learnerId = await getLearnerId();
+  const key = await getUserKey(MEMORY_KEY);
   const entry = { id: createId("memory"), learnerId, ...memory, updatedAt: Date.now() };
   const current = await loadMemories();
   const next = [entry, ...current].slice(0, 50);
-  await AsyncStorage.setItem(MEMORY_KEY, JSON.stringify(next));
+  await AsyncStorage.setItem(key, JSON.stringify(next));
   const db = getDb();
   if (db) {
     try {
@@ -94,7 +116,8 @@ export async function saveMemory(memory) {
 
 export async function loadCards() {
   const learnerId = await getLearnerId();
-  const raw = await AsyncStorage.getItem(CARDS_KEY);
+  const key = await getUserKey(CARDS_KEY);
+  const raw = await AsyncStorage.getItem(key);
   let localItems = raw ? JSON.parse(raw) : [];
   const db = getDb();
 
@@ -104,7 +127,7 @@ export async function loadCards() {
       const remoteItems = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
       if (remoteItems.length > 0) {
         localItems = remoteItems;
-        await AsyncStorage.setItem(CARDS_KEY, JSON.stringify(remoteItems));
+        await AsyncStorage.setItem(key, JSON.stringify(remoteItems));
       }
     } catch (err) {
       console.warn("Firebase Cards Sync Error:", err.message);
@@ -116,10 +139,11 @@ export async function loadCards() {
 
 export async function saveCard(card) {
   const learnerId = await getLearnerId();
+  const key = await getUserKey(CARDS_KEY);
   const entry = { id: createId("card"), learnerId, ...card, updatedAt: Date.now() };
   const current = await loadCards();
   const next = [entry, ...current].slice(0, 100);
-  await AsyncStorage.setItem(CARDS_KEY, JSON.stringify(next));
+  await AsyncStorage.setItem(key, JSON.stringify(next));
   const db = getDb();
   if (db) {
     try {
@@ -130,6 +154,7 @@ export async function saveCard(card) {
   }
   return next;
 }
+
 
 export async function loadSystemGeminiKey() {
   const db = getDb();
