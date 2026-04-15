@@ -123,7 +123,7 @@ const dictionaries = {
       firebaseMode: "Firebase 模式",
       loading: "載入中...",
     },
-    topics: ["旅遊英文", "工作會議", "咖啡店", "日常聊天", "生活英文"],
+    topics: ["日本熊本旅遊", "職場閒聊", "旅遊英文", "工作會議", "咖啡店", "日常聊天", "生活英文"],
     lessons: {
       intro: {
         title: "清楚做自我介紹",
@@ -143,6 +143,76 @@ const dictionaries = {
         phrases: [
           ["Can I get a medium latte, please?", "這是自然又常見的點餐方式。"],
           ["That's all for today, thank you.", "結尾加上 thank you 會更完整。"],
+        ],
+      },
+      kumamoto_d1: {
+        title: "日本熊本旅遊：抵達與交通",
+        duration: "10 分鐘",
+        video: "影片教學：熊本機場與交通",
+        summary: "學習如何從機場搭乘巴士前往市區，以及詢問交通工具。",
+        phrases: [
+          ["How do I get to Kumamoto city center?", "詢問如何前往市中心。"],
+          ["Where can I buy a bus ticket?", "詢問哪裡可以買巴士票。"],
+        ],
+      },
+      kumamoto_d2: {
+        title: "日本熊本旅遊：熊本城導覽",
+        duration: "12 分鐘",
+        video: "影片教學：走進熊本城",
+        summary: "學習描述歷史建築與詢問票價。",
+        phrases: [
+          ["How much is the admission fee?", "詢問入場費用。"],
+          ["The castle is very impressive.", "稱讚城堡讓人印象深刻。"],
+        ],
+      },
+      kumamoto_d3: {
+        title: "日本熊本旅遊：品嚐在地美食",
+        duration: "15 分鐘",
+        video: "影片教學：熊本美食地圖",
+        summary: "練習點選馬肉刺身 (Basashi) 或拉麵。",
+        phrases: [
+          ["I'd like to try some Basashi, please.", "想嘗試看看馬肉刺身。"],
+          ["Is Kumamoto ramen very famous?", "詢問熊本拉麵是否很有名。"],
+        ],
+      },
+      kumamoto_d4: {
+        title: "日本熊本旅遊：阿蘇山壯闊美景",
+        duration: "20 分鐘",
+        video: "影片教學：前進阿蘇活火山",
+        summary: "學習描述自然景觀與詢問天氣狀況。",
+        phrases: [
+          ["Is the cable car operating today?", "詢問纜車今天是否有營運。"],
+          ["The view of the crater is amazing!", "驚嘆於火山口的美景。"],
+        ],
+      },
+      kumamoto_d5: {
+        title: "日本熊本旅遊：水前寺成趣園",
+        duration: "10 分鐘",
+        video: "影片教學：日式庭園之美",
+        summary: "練習描述庭園造景與散步感想。",
+        phrases: [
+          ["This Japanese garden is so peaceful.", "覺得這個日式庭園很寧靜。"],
+          ["Can we have tea here?", "詢問是否可以在這裡喝茶。"],
+        ],
+      },
+      kumamoto_d6: {
+        title: "日本熊本旅遊：商店街血拼去",
+        duration: "15 分鐘",
+        video: "影片教學：下通與上通商店街",
+        summary: "練習購物英文、詢問折扣與尋找土產。",
+        phrases: [
+          ["Are there any local souvenirs?", "詢問是否有在地特色土產。"],
+          ["Can I get a tax refund here?", "詢問是否可以進行退稅。"],
+        ],
+      },
+      kumamoto_d7: {
+        title: "日本熊本旅遊：告別熊本與總結",
+        duration: "12 分鐘",
+        video: "影片教學：結束旅程",
+        summary: "回顧旅程重點，練習告別與感謝。",
+        phrases: [
+          ["I had a wonderful time in Kumamoto.", "表達在熊本度過了一段美好的時光。"],
+          ["Thank you for your hospitality.", "感謝對方的熱情款待。"],
         ],
       },
     },
@@ -288,7 +358,7 @@ const dictionaries = {
       firebaseMode: "Firebase mode",
       loading: "Loading...",
     },
-    topics: ["Travel English", "Work Meetings", "Coffee Shop", "Small Talk", "Daily Life"],
+    topics: ["Kumamoto Travel", "Small Talk", "Travel English", "Work Meetings", "Coffee Shop", "Daily Life"],
     lessons: {
       intro: {
         title: "Introduce yourself clearly",
@@ -308,6 +378,76 @@ const dictionaries = {
         phrases: [
           ["Can I get a medium latte, please?", "A natural and common way to order."],
           ["That's all for today, thank you.", "Ending with thank you sounds complete."],
+        ],
+      },
+      kumamoto_d1: {
+        title: "Kumamoto Travel: Arrival & Transport",
+        duration: "10 min",
+        video: "Video lesson: Kumamoto Airport & Transport",
+        summary: "Learn how to take a bus to the city and ask about transport.",
+        phrases: [
+          ["How do I get to Kumamoto city center?", "Asking for directions to the city."],
+          ["Where can I buy a bus ticket?", "Asking where to purchase tickets."],
+        ],
+      },
+      kumamoto_d2: {
+        title: "Kumamoto Travel: Kumamoto Castle",
+        duration: "12 min",
+        video: "Video lesson: Exploring the Castle",
+        summary: "Learn to describe historical buildings and ask for ticket prices.",
+        phrases: [
+          ["How much is the admission fee?", "Asking for the entry price."],
+          ["The castle is very impressive.", "Praising the impressive architecture."],
+        ],
+      },
+      kumamoto_d3: {
+        title: "Kumamoto Travel: Local Specialties",
+        duration: "15 min",
+        video: "Video lesson: Kumamoto Food Map",
+        summary: "Practice ordering Basashi (horse sashimi) or local ramen.",
+        phrases: [
+          ["I'd like to try some Basashi, please.", "Asking to try horse meat sashimi."],
+          ["Is Kumamoto ramen very famous?", "Asking about the famous local ramen."],
+        ],
+      },
+      kumamoto_d4: {
+        title: "Kumamoto Travel: Mount Aso Views",
+        duration: "20 min",
+        video: "Video lesson: Heading to the Volcano",
+        summary: "Learn to describe nature and ask about weather conditions.",
+        phrases: [
+          ["Is the cable car operating today?", "Checking if the cable car is running."],
+          ["The view of the crater is amazing!", "Expressing awe at the crater view."],
+        ],
+      },
+      kumamoto_d5: {
+        title: "Kumamoto Travel: Suizenji Garden",
+        duration: "10 min",
+        video: "Video lesson: Beauty of Japanese Gardens",
+        summary: "Practice describing garden scenery and your experience.",
+        phrases: [
+          ["This Japanese garden is so peaceful.", "Feeling the peace of the garden."],
+          ["Can we have tea here?", "Asking about having tea in the garden."],
+        ],
+      },
+      kumamoto_d6: {
+        title: "Kumamoto Travel: Shopping Streets",
+        duration: "15 min",
+        video: "Video lesson: Shimotori & Kamitori",
+        summary: "Practice shopping terms, asking for discounts and souvenirs.",
+        phrases: [
+          ["Are there any local souvenirs?", "Looking for local specialty gifts."],
+          ["Can I get a tax refund here?", "Asking about tax-free shopping."],
+        ],
+      },
+      kumamoto_d7: {
+        title: "Kumamoto Travel: Farewell & Review",
+        duration: "12 min",
+        video: "Video lesson: Ending the Journey",
+        summary: "Review key points and practice saying goodbye.",
+        phrases: [
+          ["I had a wonderful time in Kumamoto.", "Sharing your positive experience."],
+          ["Thank you for your hospitality.", "Expressing gratitude to the host."],
         ],
       },
     },

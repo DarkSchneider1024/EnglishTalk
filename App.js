@@ -611,10 +611,10 @@ Return ONLY JSON format:
           <Stat title={t("home.weeklyGoal")} value={`${weeklyGoal} / 5`} text={t("home.weeklyGoalText")} />
           <Stat title={t("home.streak")} value={locale === "zh" ? `${streak} 天` : `${streak} days`} text={t("home.streakText")} />
         </Row>
-        <Card title={dict.lessons.intro.title} sub={dict.lessons.intro.duration}>
-          <Text style={styles.body}>{dict.lessons.intro.summary}</Text>
+        <Card title={dict.lessons.kumamoto_d1.title} sub="系列課程 - 共 7 單元">
+          <Text style={styles.body}>{dict.lessons.kumamoto_d1.summary}</Text>
           <Row>
-            <Button label={t("home.openLesson")} onPress={() => setScreen("lesson")} />
+            <Button label={t("home.openLesson")} onPress={() => { setLessonId("kumamoto_d1"); setScreen("lesson"); }} />
             <GhostButton label={t("home.startPractice")} onPress={() => setScreen("practice")} />
           </Row>
         </Card>
