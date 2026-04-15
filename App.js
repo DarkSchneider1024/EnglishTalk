@@ -51,6 +51,7 @@ export default function App() {
   const [completedLessons, setCompletedLessons] = useState([]);
   const [personalizedLessons, setPersonalizedLessons] = useState([]);
   const profileLoadedRef = useRef(false);
+  const chatScrollRef = useRef(null);
   const adMobInfo = useMemo(() => getAdMobDebugInfo(), []);
 
   const navItems = [
@@ -83,6 +84,46 @@ export default function App() {
     setFeedback(null);
     setMemoryNotice("");
   }, [topic, screen]);
+
+  // AI 啟動開場白
+  useEffect(() => {
+    if ((screen === "practice" || screen === "freeTalk") && currentChat.length === 0 && !loading && topic && geminiKey) {
+      triggerAiOpening();
+    }
+  }, [screen, topic, geminiKey]);
+
+  async function triggerAiOpening() {
+    confirm("AI 正在準備開場練習..."); // Optional, maybe just use loading state
+    setLoading(true);
+    try {
+      const proxyUrl = process.env.EXPO_PUBLIC_VERCEL_PROXY_URL || "https://your-vercel-app.vercel.app/api/gemini";
+      const promptText = `You are a conversational partner in a '${topic}' scenario. 
+The user is an English learner.
+Please provide a friendly opening sentence or question IN CHARACTER to start the conversation.
+Return ONLY JSON format: {"reply": "your opening", "zh": "繁體中文翻譯"}`;
+
+      const res = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: promptText,
+          history: [],
+          generationConfig: { temperature: 0.8, responseMimeType: "application/json" }
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const text = data.text || "";
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0].replace(/```json|```/g, ""));
+          setCurrentChat([{ role: "model", text: parsed.reply, zh: parsed.zh }]);
+          Speech.speak(parsed.reply, { language: accent, rate: speechRate });
+        }
+      }
+    } catch (e) { console.error("Opening error:", e); }
+    setLoading(false);
+  }
 
   useEffect(() => {
     const app = getFirebaseApp();
@@ -570,17 +611,14 @@ Return ONLY JSON format:
           <ChipRow values={dict.topics} active={topic} onSelect={setTopic} />
           {screen === "freeTalk" && plan === "free" ? <Text style={styles.helper}>{t("freeTalk.freeCreditsText", { count: freeCredits })}</Text> : null}
         </Card>
+        
         <Card title={screen === "practice" ? t("practice.conversation") : t("freeTalk.chat")} sub={screen === "practice" ? t("practice.conversationSub") : t("freeTalk.chatSub", { topic })}>
-          <Input label={screen === "practice" ? t("practice.yourReply") : t("freeTalk.input")} value={message} onChangeText={setMessage} placeholder="Type English here..." multiline />
-          <Row>
-            <View style={{ flex: 2 }}><Button label={loading ? t(screen === "practice" ? "practice.sending" : "freeTalk.sending") : t(screen === "practice" ? "practice.send" : "freeTalk.send")} onPress={askGemini} /></View>
-            <View style={{ flex: 1.5 }}><GhostButton label={isListening ? "🔴 Listening..." : "🎤 Speak Now"} onPress={toggleListening} /></View>
-          </Row>
-          <Text style={[styles.helper, { textAlign: 'center', marginTop: 4 }]}>
-            {isListening ? "Talking to AI... (Auto-send enabled)" : "Tap microphone to speak, I will reply automatically."}
-          </Text>
+          {currentChat.length === 0 && loading && (
+            <Text style={[styles.body, { textAlign: 'center', marginVertical: 20 }]}>🤖 AI is preparing the opening...</Text>
+          )}
+
           {currentChat.map((msg, i) => (
-             <View key={i} style={{ alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start', backgroundColor: msg.role === 'user' ? '#eef5f6' : '#fffdf8', borderColor: "rgba(61,52,38,0.08)", borderWidth: 1, padding: 14, borderRadius: 18, marginBottom: 12, maxWidth: '85%' }}>
+             <View key={i} style={msg.role === 'user' ? styles.bubbleUser : styles.bubbleAi}>
                 <Text style={msg.role === 'user' ? styles.label : styles.phraseEn}>{msg.text}</Text>
                 {msg.zh && showHints && <Text style={{...styles.body, fontSize: 13, marginTop: 4}}>{msg.zh}</Text>}
              </View>
@@ -627,6 +665,7 @@ Return ONLY JSON format:
           {memoryNotice ? <Text style={styles.success}>{memoryNotice}</Text> : null}
           {error ? <Text style={styles.error}>{error}</Text> : null}
         </Card>
+        <View style={{ height: 100 }} /> 
       </Section>
     );
   }
@@ -814,9 +853,42 @@ Return ONLY JSON format:
               )}
             </ScrollView>
           ) : null}
-          <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+          <ScrollView 
+            ref={chatScrollRef}
+            style={styles.scroll} 
+            contentContainerStyle={styles.scrollContent}
+            onContentSizeChange={() => {
+              if (screen === "practice" || screen === "freeTalk") {
+                chatScrollRef.current?.scrollToEnd({ animated: true });
+              }
+            }}
+          >
             {content}
           </ScrollView>
+
+          {/* Sticky Chat Input Footer */}
+          {(screen === "practice" || screen === "freeTalk") && !feedback && (
+            <View style={styles.chatFooter}>
+              <View style={styles.chatRow}>
+                <Pressable onPress={toggleListening} style={styles.micBtn}>
+                  <Text style={{ fontSize: 20 }}>{isListening ? "🔴" : "🎤"}</Text>
+                </Pressable>
+                <TextInput
+                  style={[styles.stickyInput, { flex: 1 }]}
+                  placeholder={isListening ? "Listening..." : "Type your message..."}
+                  value={message}
+                  onChangeText={setMessage}
+                  multiline
+                />
+                <Pressable onPress={askGemini} disabled={loading} style={[styles.sendBtn, loading && { backgroundColor: '#ccc' }]}>
+                  <Text style={{ color: '#fff', fontWeight: '800' }}>{loading ? "..." : "✈️"}</Text>
+                </Pressable>
+              </View>
+              {isListening && (
+                <Text style={[styles.helper, { textAlign: 'center', marginTop: 4 }]}>AI is listening... Speak clearly.</Text>
+              )}
+            </View>
+          )}
         </View>
 
         {/* 廣告插頁 - 免費用戶在取得學習報告前必須觀看 */}

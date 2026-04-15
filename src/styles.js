@@ -1,4 +1,4 @@
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 
 export const styles = StyleSheet.create({
   root: { flex: 1 },
@@ -66,4 +66,63 @@ export const styles = StyleSheet.create({
   adSlot: { width: "100%", minHeight: 120, borderRadius: 18, overflow: "hidden", marginVertical: 8 },
   adCountdownBox: { backgroundColor: "#eef5f6", borderRadius: 16, paddingVertical: 16, paddingHorizontal: 24 },
   adCountdownText: { fontSize: 18, fontWeight: "800", color: "#214e63", textAlign: "center" },
+  chatFooter: {
+    padding: 12,
+    paddingBottom: Platform.OS === "ios" ? 30 : 12,
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0,0,0,0.05)",
+  },
+  stickyInput: {
+    backgroundColor: "#fffaf2",
+    borderColor: "#d9c9b6",
+    borderWidth: 1,
+    borderRadius: 24,
+    color: "#241b14",
+    fontSize: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    maxHeight: 100,
+  },
+  chatRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+  },
+  sendBtn: {
+    backgroundColor: "#1f5eff",
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  micBtn: {
+    backgroundColor: "#fff",
+    borderColor: "#d8cab8",
+    borderWidth: 1,
+    borderRadius: 20,
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  bubble: {
+    padding: 14,
+    borderRadius: 18,
+    marginBottom: 12,
+    maxWidth: "85%",
+  },
+  bubbleUser: {
+    alignSelf: "flex-end",
+    backgroundColor: "#fff4e7",
+    borderColor: "rgba(61,52,38,0.08)",
+    borderWidth: 1,
+  },
+  bubbleAi: {
+    alignSelf: "flex-start",
+    backgroundColor: "#eef5f6",
+    borderColor: "rgba(61,52,38,0.08)",
+    borderWidth: 1,
+  },
 });
