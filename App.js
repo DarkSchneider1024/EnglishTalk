@@ -52,6 +52,8 @@ export default function App() {
   const [personalizedLessons, setPersonalizedLessons] = useState([]);
   const profileLoadedRef = useRef(false);
   const chatScrollRef = useRef(null);
+  const [rewarding, setRewarding] = useState(false);
+  const [rewardCountdown, setRewardCountdown] = useState(0);
   const adMobInfo = useMemo(() => getAdMobDebugInfo(), []);
 
   const navItems = [
@@ -447,9 +449,27 @@ Return ONLY JSON format:
 
   async function rewardAd() {
     try {
-      const reward = await showRewardedCreditAd();
-      setFreeCredits((prev) => prev + 1);
-      setAdMessage(t("plans.rewardSuccess", { amount: reward.amount, type: reward.type }));
+      // 如果是 Web 版或尚未對接原生廣告，執行 3 秒模擬彈窗
+      if (Platform.OS === "web") {
+        setRewarding(true);
+        setRewardCountdown(3);
+        const timer = setInterval(() => {
+          setRewardCountdown(prev => {
+             if (prev <= 1) {
+               clearInterval(timer);
+               setRewarding(false);
+               setFreeCredits(prevCredits => prevCredits + 1);
+               setAdMessage("✅ 模擬廣告觀看完畢，次數 +1！");
+               return 0;
+             }
+             return prev - 1;
+          });
+        }, 1000);
+      } else {
+        const reward = await showRewardedCreditAd();
+        setFreeCredits((prev) => prev + 1);
+        setAdMessage(t("plans.rewardSuccess", { amount: reward.amount, type: reward.type }));
+      }
     } catch (e) {
       setError(e.message);
     }
@@ -912,6 +932,19 @@ Return ONLY JSON format:
                   <Text style={styles.btnText}>✅ 查看我的學習報告</Text>
                 </Pressable>
               )}
+            </View>
+          </View>
+        ) : null}
+
+        {/* 獎勵廣告模擬彈窗 - 針對 Web / 測試環境 */}
+        {rewarding ? (
+          <View style={styles.adOverlay}>
+            <View style={styles.adModal}>
+              <Text style={styles.adTitle}>📺 獎勵廣告 (模擬)</Text>
+              <Text style={styles.adSubtitle}>正在觀看廣告，完成後即可獲得額外對話次數。</Text>
+              <View style={styles.adCountdownBox}>
+                 <Text style={styles.adCountdownText}>🎁 獎勵將在 {rewardCountdown} 秒後發放...</Text>
+              </View>
             </View>
           </View>
         ) : null}
